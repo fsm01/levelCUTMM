@@ -1,0 +1,140 @@
+NodeID: 0
+LinkTo: 1 4
+LinkTo: 2 1
+NodeID: 1
+LinkTo: 0 4
+LinkTo: 2 4
+LinkTo: 9 4
+LinkTo: 8 4
+NodeID: 2
+LinkTo: 0 4
+LinkTo: 1 5
+LinkTo: 3 5
+LinkTo: 4 5
+LinkTo: 10 5
+NodeID: 3
+LinkTo: 2 5
+LinkTo: 4 1
+NodeID: 4
+LinkTo: 2 1
+LinkTo: 3 5
+LinkTo: 5 5
+LinkTo: 15 1
+LinkTo: 6 1
+NodeID: 5
+LinkTo: 4 5
+LinkTo: 12 5
+LinkTo: 16 5
+NodeID: 6
+LinkTo: 4 4
+LinkTo: 8 5
+LinkTo: 12 1
+NodeID: 7
+LinkTo: 8 1
+LinkTo: 10 1
+NodeID: 8
+LinkTo: 1 5
+LinkTo: 6 1
+LinkTo: 7 1
+LinkTo: 13 1
+NodeID: 9
+LinkTo: 1 5
+LinkTo: 10 1
+LinkTo: 17 1
+NodeID: 10
+LinkTo: 2 5
+LinkTo: 7 1
+LinkTo: 13 1
+LinkTo: 11 5
+LinkTo: 18 1
+LinkTo: 9 1
+NodeID: 11
+LinkTo: 10 5
+LinkTo: 14 1
+NodeID: 12
+LinkTo: 6 5
+LinkTo: 5 1
+LinkTo: 16 1
+LinkTo: 13 5
+NodeID: 13
+LinkTo: 8 5
+LinkTo: 12 1
+LinkTo: 15 1
+LinkTo: 25 5
+LinkTo: 14 1
+LinkTo: 10 1
+NodeID: 14
+LinkTo: 13 5
+LinkTo: 19 1
+LinkTo: 11 1
+NodeID: 15
+LinkTo: 4 5
+LinkTo: 16 1
+LinkTo: 13 1
+LinkTo: 30 1
+NodeID: 16
+LinkTo: 5 5
+LinkTo: 15 1
+LinkTo: 12 1
+NodeID: 17
+LinkTo: 9 5
+LinkTo: 18 1
+LinkTo: 20 1
+NodeID: 18
+LinkTo: 10 5
+LinkTo: 19 1
+LinkTo: 23 1
+LinkTo: 17 1
+NodeID: 19
+LinkTo: 14 5
+LinkTo: 25 1
+LinkTo: 18 1
+NodeID: 20
+LinkTo: 17 5
+LinkTo: 21 1
+NodeID: 21
+LinkTo: 20 5
+LinkTo: 23 1
+LinkTo: 22 1
+NodeID: 22
+LinkTo: 21 5
+LinkTo: 24 1
+NodeID: 23
+LinkTo: 18 5
+LinkTo: 26 1
+LinkTo: 24 1
+LinkTo: 21 1
+NodeID: 24
+LinkTo: 23 5
+LinkTo: 26 1
+LinkTo: 28 1
+LinkTo: 22 1
+NodeID: 25
+LinkTo: 13 5
+LinkTo: 30 1
+LinkTo: 26 1
+LinkTo: 19 1
+NodeID: 26
+LinkTo: 25 5
+LinkTo: 27 1
+LinkTo: 24 1
+LinkTo: 23 1
+NodeID: 27
+LinkTo: 30 5
+LinkTo: 29 1
+LinkTo: 28 1
+LinkTo: 26 1
+NodeID: 28
+LinkTo: 27 5
+LinkTo: 24 1
+NodeID: 29
+LinkTo: 27 5
+LinkTo: 31 1
+NodeID: 30
+LinkTo: 15 5
+LinkTo: 31 1
+LinkTo: 27 5
+LinkTo: 25 1
+NodeID: 31
+LinkTo: 30 5
+LinkTo: 29 1
