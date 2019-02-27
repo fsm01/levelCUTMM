@@ -187,6 +187,9 @@ public class PreEmptionAlgorithms {
 			for(PathKeepForPre p : DList){
 				sum += p.pathBW;
 				stats.addValue(p.pathBW);
+				for(Flow f: flowArray2)
+					if (f.id == p.flowId)
+						f.path = p.path;//flowArray2.get(p.flowId).path = p.path;
 
 				//System.out.println(p.flowId +"\t" + p.lastUT);
 
@@ -196,6 +199,8 @@ public class PreEmptionAlgorithms {
 
 		}
 		long end = System.nanoTime();
+		
+		//dj.preTime += (end-start);
 		double ci =  dj.calcMeanCI(stats, dj.levelCI);
 
 		setCI(ci);

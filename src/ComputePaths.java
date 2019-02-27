@@ -1,5 +1,6 @@
 
 
+import java.sql.Array;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -17,6 +18,7 @@ public class ComputePaths {
 	public static int totPath = 0;
 	public static int maxOfMax = 0;
 	public static LinkedList<Edge> pathEdges = new LinkedList<Edge>();
+	static int[][] pathFloyd;
 	@SuppressWarnings({ "static-access", "unused" })
 	public static int hopCount(Vertex source, Vertex target, LinkedList<Edge> edges, Vertex[] vertices){
 		int hopCount = 0;
@@ -229,10 +231,10 @@ public class ComputePaths {
 							ArrayList<Vertex> pp = new ArrayList<Vertex>();
 							pp.add(source);
 							pp.add(target);
-							
+
 							partialPaths.add(pp);
 							continue;
-							
+
 						}
 
 						//continue;
@@ -249,37 +251,37 @@ public class ComputePaths {
 				//System.out.println(flag);
 				ArrayList<Vertex> path = new ArrayList<Vertex>();
 				if(flag == 1) {
-					
+
 
 					//System.out.println(partialPaths);
 					path = partialPaths.getFirst();
 					if(partialPaths.size() > 1) {
-					for(int part = 1; part < partialPaths.size(); part++) {
-						ArrayList<Vertex> pp = partialPaths.get(part);
-						for(Vertex v: pp) {
-							
-							if(!path.contains(v)) {
-								path.add(v);
-							}else{
-								int ind = path.indexOf(v);
-								//System.out.println(v + " IN " + ind);
-								//System.out.println(path);
-//								for(int index = ind; index < path.size(); index++)
-//									path.remove(index);
-								
-								path.subList(ind, path.size()).clear();
-								
-								path.add(v);
-							}
+						for(int part = 1; part < partialPaths.size(); part++) {
+							ArrayList<Vertex> pp = partialPaths.get(part);
+							for(Vertex v: pp) {
 
-							
+								if(!path.contains(v)) {
+									path.add(v);
+								}else{
+									int ind = path.indexOf(v);
+									//System.out.println(v + " IN " + ind);
+									//System.out.println(path);
+									//								for(int index = ind; index < path.size(); index++)
+									//									path.remove(index);
+
+									path.subList(ind, path.size()).clear();
+
+									path.add(v);
+								}
+
+
+							}
 						}
-					}
 					}
 
 
 				}
-//arrayList.subList(2, arrayList.size()).clear();
+				//arrayList.subList(2, arrayList.size()).clear();
 
 				//System.out.println(path);
 				flagx = 0;
@@ -292,7 +294,7 @@ public class ComputePaths {
 				}else
 					Dijkstra.lostCut++;
 				//else
-					//System.out.println("####");
+				//System.out.println("####");
 
 			}
 			//Max flow ayarlanir eger hepsi girmeyecekse bu bizim max olacak
@@ -309,7 +311,7 @@ public class ComputePaths {
 		}
 		return 0;
 	}
-	
+
 	public static int pathCheck(ArrayList<Vertex> path, LinkedList<Edge> edges, Flow f) {
 		Vertex next = null;
 		Vertex temp = null;
@@ -330,7 +332,7 @@ public class ComputePaths {
 				return 0;
 
 		}
-		
+
 		for(Edge ex: edgesOfPath)
 			ex.capacity  = ex.capacity - f.cost;
 		return 1;
@@ -366,7 +368,7 @@ public class ComputePaths {
 
 			if(!u.adjacencies.isEmpty() ){
 				for(Edge e: u.adjacencies){
-/*					if(e.possibleFlow.contains(f.id)){
+					/*					if(e.possibleFlow.contains(f.id)){
 
 						//System.out.println("F " + f.id + " " + e.possibleFlow + " " + target + " " + e.target);
 						//Eger target bir sonraki vertex ise hesap yapmaya gerek yok degilse shortest path bulur
@@ -411,7 +413,7 @@ public class ComputePaths {
 			//System.out.println("asass "+pp);
 			if(pp != null)
 				partialPaths.add(pp);
-			
+
 			else
 				return 0;
 		}else
@@ -633,7 +635,10 @@ public class ComputePaths {
 						//e.flowCount = 1;
 						//System.out.println(e.rate[s.id][t.id]);
 						//e.rate[s.id][t.id] = 1.0;
-						Double distanceThroughU = u.minDistance + (1.0*e.flowCount)/(e.rate[s.id][t.id]*e.capacity);						
+						double a = e.rate[s.id][t.id]/(e.capacity-f);
+						double b = e.rate[s.id][t.id]/(e.capacity);
+						double newVal = a*a-b*b;
+						double distanceThroughU = u.minDistance + (1.0*e.flowCount)/(e.rate[s.id][t.id]*e.capacity);						
 						//System.out.println("MI: " + distanceThroughU);
 						//System.out.println(u.name + " to " + v.name + " id" +e.id+ " c: " + e.capacity + " e.n: " + e.id);
 
@@ -668,6 +673,88 @@ public class ComputePaths {
 			fl.path = findPathR(s, t, edges, vertices, f);
 		}
 		return x;
+
+
+	}
+
+	public static ArrayList<Vertex> computePathwithQLRate( Vertex[] vertices, LinkedList<Edge> edges, Flow fl, double[] QL){
+		int f = fl.cost;
+		int x = 0;
+		for (Vertex v : vertices) {
+			v.minDistance = Double.MAX_VALUE;
+			v.previous = null;
+			v.visit = false;
+		}
+		Vertex s = fl.source;
+		Vertex t = fl.target;
+
+
+		s.minDistance = 0.0;
+		PriorityQueue<Vertex> vertexQueue = new PriorityQueue<Vertex>();
+		vertexQueue.add(s);
+
+		while (!vertexQueue.isEmpty()) {
+
+			Vertex u = vertexQueue.remove();
+			u.visit = true;
+			if(u.adjacencies != null){
+
+				//System.out.println("U: " + u);
+				for (int i = 0; i < u.adjacencies.size(); i++)
+				{
+					Edge e = u.adjacencies.get(i);
+
+					Vertex v = e.target;
+
+					//if((e.totalCost + flow) / e.capTemp <= alfa ){
+
+
+					if (e.capacity >= f && v.visit == false) {
+						//e.flowCount = 1;
+						//System.out.println(e.rate[s.id][t.id]);
+						//e.rate[s.id][t.id] = 1.0;
+						double a = QL[e.id]/(e.capacity-f) - QL[e.id]/e.capTemp;
+						double b = QL[e.id]/e.capacity - QL[e.id]/e.capTemp;
+					
+						double wVal = a*a-b*b;
+						//if(wVal <= 0)
+							//System.out.println(">>"+wVal);
+						double distanceThroughU = u.minDistance + wVal;						
+						//System.out.println("MI: " + distanceThroughU);
+						//System.out.println(u.name + " to " + v.name + " id" +e.id+ " c: " + e.capacity + " e.n: " + e.id);
+
+						if ((distanceThroughU < v.minDistance)) {
+							//System.out.println("in--> "+u.name + " to " + v.name + " id" +e.id+ " c: " + e.capacity + " e.n: " + e.id);
+							//vertexQueue.remove(v);
+
+							v.minDistance = distanceThroughU ;
+							v.previous = u;
+							vertexQueue.add(v);
+
+
+						}
+
+						if(v.id == t.id){
+							x = 1;
+						}
+					}
+				}
+
+			}
+
+
+			//System.out.println("X: " + x);
+
+			//x = findPath(source, target, edges, vertices,flow,flag);
+			//System.out.println("y: " + x);
+		}
+		ArrayList<Vertex> path = null;//new ArrayList<Vertex>();
+		if(x != 0) {
+			//System.out.println("mm: " + t.minDistance.intValue());
+
+			path = findPathR(s, t, edges, vertices, f);
+		}
+		return path;
 
 
 	}
@@ -807,10 +894,93 @@ public class ComputePaths {
 			//System.out.println("mm: " + t.minDistance.intValue());
 
 			fl.dspPaths[shf] = findPathR(s, t, edges, vertices, f);
+			//System.out.println(fl.dspPaths[shf]);
+
+			ArrayList<Vertex> pathL = fl.dspPaths[shf];
+			Vertex a = pathL.get(0);
+			int sum = 0;
+			for(int i = 1; i < pathL.size(); i++) {
+				Vertex b = pathL.get(i);
+				Edge e = findEdge(a.id, b.id, edges);
+				//System.out.println(e.id + " " + e.capacity);
+				sum = sum + e.capacity;
+				a = b;
+
+
+			}
+			//System.out.println("SUM: " + sum);
 		}
 		return x;
 
 
+	}
+	
+	public static ArrayList<Vertex> computePathSP( Vertex[] vertices, LinkedList<Edge> edges, Vertex source, Vertex target){
+		int x = 0;
+		for (Vertex v : vertices) {
+			v.minDistance = Double.MAX_VALUE;
+			v.previous = null;
+		}
+		Vertex s = source;
+		Vertex t = target;
+
+		ArrayList<Vertex> path = null;
+		s.minDistance = 0.0;
+		PriorityQueue<Vertex> vertexQueue = new PriorityQueue<Vertex>();
+		vertexQueue.add(s);
+
+		while (!vertexQueue.isEmpty()) {
+
+			Vertex u = vertexQueue.remove();
+
+			if(u.adjacencies != null){
+
+				//System.out.println("U: " + u);
+				for (int i = 0; i < u.adjacencies.size(); i++)
+				{
+					Edge e = u.adjacencies.get(i);
+
+					Vertex v = e.target;
+
+					//if((e.totalCost + flow) / e.capTemp <= alfa ){
+					
+						Double distanceThroughU = u.minDistance + (1.0)/e.capacity;
+						//System.out.println("MI: " + distanceThroughU);
+						//System.out.println(u.name + " to " + v.name + " id" +e.id+ " c: " + e.capacity + " e.n: " + e.id);
+
+						if ((distanceThroughU < v.minDistance)) {
+							//System.out.println("in--> "+u.name + " to " + v.name + " id" +e.id+ " c: " + e.capacity + " e.n: " + e.id);
+							//vertexQueue.remove(v);
+
+							v.minDistance = distanceThroughU ;
+							v.previous = u;
+							vertexQueue.add(v);
+
+
+						}
+
+						if(v.id == t.id){
+							x = 1;
+						}
+					
+				}
+
+			}
+
+
+			//System.out.println("X: " + x);
+
+			//x = findPath(source, target, edges, vertices,flow,flag);
+			//System.out.println("y: " + x);
+		}
+		if(x != 0) {
+			//System.out.println("mm: " + t.minDistance.intValue());
+			path = findPathPart(source, target, edges, vertices);
+
+		}else
+			return null;
+
+		return path;
 	}
 
 	public static int computePathsForAll(Vertex source, Vertex target,LinkedList<Edge> edges, Vertex[] vertices)
@@ -884,12 +1054,13 @@ public class ComputePaths {
 
 	}
 
-	public static int computePaths2(Vertex source, Vertex target,LinkedList<Edge> edges, Vertex[] vertices, int flow)
+	public static int computePaths2(Vertex source, Vertex target,LinkedList<Edge> edges, Vertex[] vertices, Flow fl)
 	{
 		int x = 0;
 		source.minDistance = (-1)*Double.MAX_VALUE;
 		PriorityQueue<Vertex> vertexQueue = new PriorityQueue<Vertex>();
 		vertexQueue.add(source);
+		int flow = fl.cost;
 
 		Vertex temp = null;
 		while (!vertexQueue.isEmpty()) {
@@ -940,7 +1111,9 @@ public class ComputePaths {
 		}
 
 		if(x != 0)
-			findPath(source, target, edges, vertices, flow);
+			fl.path = findPathR(source, target, edges, vertices, flow);
+		else
+			fl.path = null;
 		//	else
 		//		System.err.println(flow + " s: " + source + " t: " + target + " NO PATH");
 		//x = findPath(source, target, edges, vertices,flow,flag);
@@ -949,7 +1122,251 @@ public class ComputePaths {
 
 	}
 
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	public static void floydAlg(LinkedList<Edge> edges, Vertex[] vertices, int flow, ArrayList[][] kPath){
 
+		double[][] dist = new double[vertices.length][vertices.length];
+
+		pathFloyd = new int[vertices.length][vertices.length];
+		for(int i =0; i<vertices.length; i++) {
+			//vertices[i].previous = null;
+			for (int j = 0; j < vertices.length; j++) {
+				//vertices[j].previous = null;
+				if (vertices[i].adjV.contains(vertices[j])){
+					Edge e= findEdge(i, j, edges);
+					dist[i][j] = e.capacity;
+					if (i != j)
+						pathFloyd[i][j] = i;
+					else
+						pathFloyd[i][j] = -1;
+
+				}else {
+					dist[i][j] = Double.MAX_VALUE;
+					pathFloyd[i][j] = Integer.MAX_VALUE;
+				}
+			}
+		}
+		for(int k =0; k<vertices.length; k++) {
+			for(int i =0; i<vertices.length; i++) {
+				for (int j = 0; j < vertices.length; j++) {
+
+					//System.out.println(i+"->"+j+":"+k);
+
+					if (dist[i][k] + dist[k][j] < dist[i][j]) {
+
+						dist[i][j] = dist[i][k] + dist[k][j];
+						pathFloyd[i][j] = pathFloyd[k][j];
+						//System.out.println(i + "->" + j + ":"+dist[i][j]);
+					}
+				}
+
+
+
+
+			}
+
+		}
+
+			for(int x = 0; x <vertices.length; x++ ) {
+				for(int y = 0; y < vertices.length; y++) {
+				Vertex s = vertices[x];
+				Vertex t = vertices[y];
+				ArrayList<Vertex> pathL = new ArrayList<Vertex>();
+				pathL.add(s);
+				//System.out.print(source.id + " ");
+				printPath(pathFloyd,s.id, t.id, vertices, pathL);
+				pathL.add(t);
+
+				kPath[s.id][t.id].add(pathL);
+				/*		System.out.print(target.id);
+		System.out.println();
+		System.out.println(pathL);
+
+		System.out.println("!!" + kPath[source.id].get(0));
+		Vertex a = pathL.get(0);
+		int sum = 0;
+		for(int i = 1; i < pathL.size(); i++) {
+			Vertex b = pathL.get(i);
+			Edge e = findEdge(a.id, b.id, edges);
+			System.out.println(e.id + " " + e.capacity);
+			sum = sum + e.capacity;
+			a = b;
+
+
+		}
+		System.out.println("SUM: " + sum);
+				 */
+				}
+			
+
+		}
+	}
+	
+	public static ArrayList<Vertex> floydAlgSp(Vertex source, Vertex target,LinkedList<Edge> edges, Vertex[] vertices, int flow, ArrayList[][] kPath, int flag){
+
+		ArrayList<Vertex> pathL = new ArrayList<Vertex>();
+		
+		pathL.add(source);
+		printPath(pathFloyd,source.id, target.id, vertices, pathL);
+		pathL.add(target);
+		
+		return pathL;
+	}
+	public static void printPath(int[][] path, int u, int v, Vertex[] vertices, ArrayList<Vertex> p) {
+		if(path[u][v] == u)
+			return;
+
+		printPath(path,u, path[u][v], vertices, p);
+		p.add(vertices[path[u][v]]);
+		//System.out.print(path[u][v] + " ");
+
+
+	}
+
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	public static void k_paths(Vertex source, Vertex target, LinkedList<Edge> edges, Vertex[] vertices, ArrayList[][] kPath, int flow) {
+		ArrayList<Vertex> path0 = (ArrayList<Vertex>) kPath[source.id][target.id].get(0);
+		ArrayList<Vertex> chosenP = new ArrayList<>();
+		for(int k = 1; k < 5; k++) {
+			ArrayList<Vertex> pathKp = (ArrayList<Vertex>) kPath[source.id][target.id].get(k-1);
+			ArrayList[] B = new ArrayList[pathKp.size()];//new ArrayList[Dijkstra.K_VAL+1];
+			chosenP = null;
+			Edge e = null;
+			for(int i = 0; i < B.length; i++) {
+				B[i] = new ArrayList<Vertex>();
+			}
+			for(int i = 0; i <pathKp.size()-1 ; i++) {
+				
+				Vertex NodeA = pathKp.get(i);
+				
+				for(int j = 0; j < k ; j++) {
+					ArrayList<Vertex> pathKj = (ArrayList<Vertex>) kPath[source.id][target.id].get(j);
+					Vertex NodeB = pathKj.get(i);
+					
+					if (NodeA.id == NodeB.id) {
+						Vertex NodeBT = pathKj.get(i+1);
+						e = findEdge(NodeA.id, NodeBT.id, edges);
+						if(e != null)
+							e.capacity = Integer.MAX_VALUE;
+						
+					}
+				}
+				
+				ArrayList s = computePathSP(vertices, edges, NodeA, target);
+				if(s != null) {
+				for(int l = 0; l < i; l++) {
+					B[i].add(pathKp.get(l));
+				}
+					for(int l = 0; l < s.size(); l++)
+						B[i].add(s.get(l));
+				}
+				else
+					B[i] = null;
+				if(chosenP == null) {
+					chosenP = B[i];
+					
+				}else {
+					
+					if(B[i] != null && chosenP.size() > B[i].size())
+						chosenP = B[i];
+				}
+			}
+			
+			if (e != null)
+				e.capacity = e.capTemp;
+			
+			kPath[source.id][target.id].add(chosenP);
+		}
+		
+		//System.out.println(kPath[source.id][target.id]);
+		
+		//return bestPath(source, target, edges, vertices, kPath, flow);
+	}
+	
+	@SuppressWarnings("unchecked")
+	public static ArrayList<Vertex> bestPath(Vertex source, Vertex target, LinkedList<Edge> edges, Vertex[] vertices, ArrayList[][] kPath, int flow){
+		ArrayList<Vertex> bestPath = new ArrayList<>();
+		pathForFloyd[] UVector = new pathForFloyd[5];
+ 		for(int i =0; i < 5; i++) {
+ 			UVector[i] = new pathForFloyd();
+ 			
+ 			ArrayList<Vertex> path = (ArrayList<Vertex>) kPath[source.id][target.id].get(i);
+ 			
+ 			UVector[i].lengthI = path.size();
+ 			
+ 			Vertex temp = path.get(0);
+ 			Edge crE = null;
+ 			for(int a =1; a <path.size();a++){
+
+ 				Vertex next = path.get(a);
+ 				Edge e = findEdge(temp.id, next.id, edges);
+ 				if(e != null){
+ 					if(crE == null) {
+ 						crE = e;
+ 					}else {
+ 						
+ 						if (e.capacity < crE.capacity)
+ 							crE = e;
+ 					}
+
+ 					temp = next;
+ 				}
+
+ 			}
+ 				if(crE != null) {
+				int totF = crE.capTemp - crE.capacity;
+				UVector[i].bytesI = totF-UVector[i].bytesIprev;
+				UVector[i].bytesIprev = UVector[i].bytesI;
+				
+				UVector[i].packetsI = crE.flowCount- UVector[i].packetsIprev;
+				UVector[i].packetsIprev = UVector[i].packetsI;
+				
+				UVector[i].port_rateI = (double) UVector[i].bytesI/UVector[i].packetsI;
+ 				}
+		}
+ 		
+ 		for(int j = 0; j < 5; j++) {
+ 			UVector[j].length = 1.0/Math.exp((double) UVector[j].lengthI);
+ 			UVector[j].bytes = 1.0/Math.log((double) UVector[j].bytesI+0.1);
+ 			UVector[j].packets = 1.0/Math.log((double) UVector[j].packetsI + 0.1);
+ 			UVector[j].port_rate = 1.0/(1 + Math.exp(-1*(UVector[j].port_rate/50.0)));
+ 		}
+ 		
+ 		double[] maxVal = new double[5];
+ 		for(int i = 0; i < 5; i++)
+ 			maxVal[i] = Double.NEGATIVE_INFINITY;
+ 		double maxK = Double.NEGATIVE_INFINITY;
+ 		int lastK = -1;
+ 		for(int k =0; k < 5; k++) {
+ 			double a = UVector[k].length*0.4;
+ 			double b= UVector[k].bytes*0.15;
+ 			double c = UVector[k].packets*0.15;
+ 			double d = UVector[k].port_rate*0.3;
+ 			maxVal[k] = returnMaxIndex(a, b, c, d);
+ 			//System.out.println(k + ": " + maxVal[k]);
+ 			if(maxK < maxVal[k]) {
+ 				maxK = maxVal[k];
+ 				lastK = k;
+ 			}
+ 			
+ 		}
+ 		
+ 		
+ 		bestPath = (ArrayList<Vertex>) kPath[source.id][target.id].get(lastK);
+ 		
+		return bestPath;
+	}
+	
+	public static double returnMaxIndex(double a, double b, double c, double d) {
+		if (a >= b && a>=c && a>=d)
+			return a;
+		else if(b>a && b > c && b > d)
+			return b;
+		else if(c>a && c>b && c > d)
+			return c;
+		else
+			return d;
+	}
 	public static ArrayList<Vertex> findPathForAll(Vertex source, Vertex target, LinkedList<Edge> edges,Vertex[] vertices){
 
 		ArrayList<Vertex> path = new ArrayList<Vertex>();
@@ -1014,6 +1431,7 @@ public class ComputePaths {
 
 		int b = 1;
 
+
 		while(temp != source){
 
 			temp2 = temp;
@@ -1031,10 +1449,10 @@ public class ComputePaths {
 		path.add(source);
 		Collections.reverse(path);
 		return path;
-		
 
 
-/*		//System.out.println("NL "+ flow + " s: " + source.id + " t: " + target.id);
+
+		/*		//System.out.println("NL "+ flow + " s: " + source.id + " t: " + target.id);
 		System.out.println("PATH " + path);
 		for(Vertex v: vertices) {
 			if (keepVertexOfPath.contains(v))
@@ -1326,25 +1744,35 @@ public class ComputePaths {
 			}else
 				path = f.dspPaths[ll];
 
-			Vertex temp = path.get(0);
-			Vertex next;
-			double utM = Double.MIN_VALUE;
-			//System.out.println("P " + path);
-			for(int a =1; a <path.size();a++){
 
-				next = path.get(a);
-				//System.out.println("MIN: " + minEdgeInPath);
-				//System.out.println(temp.id + " - " + next.id);
-				Edge e = findEdge(temp.id, next.id, edges);
-				double ut = (double)(e.capTemp-e.capacity)/e.capTemp;
+			if(!path.isEmpty()) {
+				Vertex temp = path.get(0);
+				Vertex next;
+				double utM = -1;
 
-				if(ut > utM)
-					utM = ut;
-				temp = next;
+				//System.out.println("P " + path);
+				double dl = 0.0;
+				for(int a =1; a <path.size();a++){
 
+					next = path.get(a);
+					//System.out.println("MIN: " + minEdgeInPath);
+					//System.out.println(temp.id + " - " + next.id);
+					Edge e = findEdge(temp.id, next.id, edges);
+					double ut = (double)(e.capTemp-e.capacity)/e.capTemp;
+					dl = dl + 1.0/(1.0-ut);
+					if(ut > utM)
+						utM = ut;
+					temp = next;
+
+				}
+
+				f.lastUT = utM;
+				f.lastDL = dl;
+
+			}else {
+				f.lastUT = Double.MAX_VALUE;
+				f.lastDL = Double.MAX_VALUE;
 			}
-
-			f.lastUT = utM;
 
 		}
 

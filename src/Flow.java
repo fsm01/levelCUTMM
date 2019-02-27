@@ -13,6 +13,7 @@ class Flow implements Comparable<Flow>
 	public ArrayList<Vertex> path = new ArrayList<Vertex>();
 	
 	public double lastUT = 0.0;
+	public double lastDL = 0.0;
 	
 	@SuppressWarnings("unchecked")
 	public ArrayList<Vertex>[] dspPaths = new ArrayList[10];

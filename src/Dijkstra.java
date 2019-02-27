@@ -7,13 +7,13 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.lang.reflect.Array;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
-import java.time.format.ResolverStyle;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -37,9 +37,13 @@ public class Dijkstra {
 
 	public static GetComputePaths getPath = new GetComputePaths();
 	public static NumberFormat formatter = new DecimalFormat("#.##");
-	public static int RUNSIZE = 14;
+	public static int RUNSIZE = 100;
 	public static int NODESIZE = 100;
 	public static int SHUFFLET=5;
+
+	public static boolean flagUT = true;
+	public static boolean flagUTF = true;
+	public static boolean flagWAX = false;
 
 	//D:\EclipseWorkspace\lastIdeaDecember2\test2
 	public static keepCutLevels[][] levelCuts = new keepCutLevels[NODESIZE][NODESIZE];
@@ -49,8 +53,8 @@ public class Dijkstra {
 	public static ArrayList<Vertex>[] dspPaths;
 	public static int FLOWSIZE = 3;
 
-	public static int flowRange = 25;
-	public static int bandwidthRange = 1000;
+	public static int flowRange = 49;
+	public static int bandwidthRange = 400;
 
 	public static int sourceNode = 0;
 	public static int targetNode = 31;
@@ -63,20 +67,25 @@ public class Dijkstra {
 	 * public static final int outmostNodesSource[] = {99,75,15}; public static
 	 * final int outmostNodesTarget[] = {10,0,6};
 	 */
+
+	public static int outmostNodesSourceY[] = new int[20];
+	public static int outmostNodesTargetY[] = new int[20];
+
 	public static final int outmostNodesSourceX[] = { 1,3, 5, 10, 17};
 	public static final int outmostNodesTargetX[] = { 21 ,23, 25, 30 ,31};
 
-	public static int[] outmostNodesSource = {88,94, 86, 55, 10};//{ 99, 96, 98, 95, 97,95 };//,94,93,92,91,90
-	public static int[] outmostNodesTarget = {28,44,82, 96, 97, 22};//{ 3, 1, 5, 0, 2,4 };//,6,7,8,9,10
+	public static int[] outmostNodesSource = {88,94, 86, 55, 10, 99, 96, 98, 95, 97,95 };//,94,93,92,91,90
+	public static int[] outmostNodesTarget = {28,44,82, 96, 97, 22, 3, 1, 5, 0, 2 };//,6,7,8,9,10
 	public static LinkedList<Integer> outmostNodesSourceL;
 	public static LinkedList<Integer> outmostNodesTargetL;
 	public static keepCutLevels[][] cutLevelArray = new keepCutLevels[NODESIZE][NODESIZE];
 	public static int[][] totalFlowForPairs = new int[NODESIZE][NODESIZE]; 
-	public static ArrayList<Flow> flowArray = new ArrayList<Flow>();
-	public static ArrayList<Flow> flowArrayTemp = new ArrayList<Flow>();
-	public static ArrayList<Flow> flowArrayTemp2 = new ArrayList<Flow>();
-	public static ArrayList<Flow> flowArrayTemp3 = new ArrayList<Flow>();
-	public static ArrayList<Flow> flowArrayTemp4 = new ArrayList<Flow>();
+	
+	public static ArrayList<Flow> flowArray = new ArrayList<Flow>(); //DIS
+	public static ArrayList<Flow> flowArrayTemp = new ArrayList<Flow>();//PRE
+	public static ArrayList<Flow> flowArrayTemp2 = new ArrayList<Flow>();//DSP-SH
+	public static ArrayList<Flow> flowArrayTemp3 = new ArrayList<Flow>();//DWSP
+	public static ArrayList<Flow> flowArrayTemp4 = new ArrayList<Flow>();//MP-LCBR
 	public static ArrayList<Flow> flowArrayTemp5 = new ArrayList<Flow>();
 	public static ArrayList<Flow> flowArrayTemp6 = new ArrayList<Flow>();
 
@@ -95,6 +104,8 @@ public class Dijkstra {
 	public static double totalFlow = 0;
 	public static long allTotalFlows = 0;
 	public static long maxForCut = 0;
+	public static long maxSacma = 0;
+	public static long maxQ = 0;
 	public static long maxForPre = 0;
 	public static long maxForDis=0;
 	public static long maxDJ = 0;
@@ -113,6 +124,7 @@ public class Dijkstra {
 	public static long wspTime = 0;
 	public static long djITime = 0;
 	public static long djSHTime = 0;
+	public static long QTime = 0;
 
 	public static long lostPre = 0;
 	public static long lostDis = 0;
@@ -121,17 +133,20 @@ public class Dijkstra {
 	public static long lostDjI =0;
 	public static long lostDjSH =0;
 	public static long lostCut = 0;
+	public static long lostQ = 0;
 
 	public static int sucPre = 0;
+	public static int sucQ = 0;
 	public static int sucDis = 0;
 	public static int sucDjAll =0;
 	public static int sucWSP = 0;
 	public static int sucDjI =0;
 	public static int[] sucDj= new int[SHUFFLET];
 	public static int[] lostDj = new int[SHUFFLET];
-	
+
 	public static int sucCut = 0;
 
+	public static boolean[] flagK = new boolean[RUNSIZE+1];
 
 	public static double ciPre = 0.0;
 	public static double ciDis = 0.0;
@@ -140,6 +155,7 @@ public class Dijkstra {
 	public static double ciDjI =0.0;
 	public static double ciDjSH =0.0;
 	public static double ciCUT = 0.0;
+	public static double ciQ = 0.0;
 
 
 	public static double avgPre = 0.0;
@@ -149,6 +165,7 @@ public class Dijkstra {
 	public static double avgDjI = 0.0;
 	public static double avgDjSH = 0.0;
 	public static double avgCUT = 0.0;
+	public static double avgQ = 0.0;
 
 
 
@@ -196,26 +213,53 @@ public class Dijkstra {
 	public static int utLC = 0;
 	public static int utAC = 0;
 	public static int ut0C = 0;
+	
+	public static int utCQ = 0;
+	public static int utLQ = 0;
+	public static int utAQ = 0;
+	public static int ut0Q = 0;
+	
+	public static long prevT = 0;
 
 	public static double[][] utDD;
 
+	public static int[][] chosenPairs;
+
 	public static int EDGESIZE = 0;
 
-	public static BufferedWriter writer; 
-	public static BufferedWriter writer2;
+	public static PrintWriter writer; 
+	public static PrintWriter writer2;
+	public static PrintWriter writer3;
+	
+	public static PrintWriter dataWriter;
+	public static int flagR = 6;
+	public static int K_VAL = 5;
+	public static double[] QL;
+	@SuppressWarnings("rawtypes")
+	public static ArrayList[][] kPath = new ArrayList[NODESIZE][NODESIZE];
+
 	@SuppressWarnings({ "static-access", "unlikely-arg-type", "resource", "unchecked" })
 	public static void main(String[] args) throws FileNotFoundException,
 
-	IOException {
+	IOException, InterruptedException {
 
-//		writer = new BufferedWriter(new FileWriter("C:\\Users\\erdalEv\\eclipse-workspace\\levelCut-EV\\src\\utEdge.txt"));
-//		writer2 = new BufferedWriter(new FileWriter("C:\\Users\\erdalEv\\eclipse-workspace\\levelCut-EV\\src\\utFlow.txt"));
+		//		writer = new BufferedWriter(new FileWriter("C:\\Users\\erdalEv\\eclipse-workspace\\levelCut-EV\\src\\utEdge.txt"));
+		//		writer2 = new BufferedWriter(new FileWriter("C:\\Users\\erdalEv\\eclipse-workspace\\levelCut-EV\\src\\utFlow.txt"));
 
+		String fileNameData = "C:\\Users\\erdalEv\\eclipse-workspace\\levelCut-EV\\src\\utResults\\DATA\\data.txt";
 
-		System.out.println("GIT HADI DA");
+		dataWriter = new PrintWriter(new BufferedWriter(new FileWriter(fileNameData,true)));
 
+		for (int i = 0; i < NODESIZE;i++) {
+
+			for(int j =0; j <NODESIZE; j++) {
+
+				kPath[i][j] = new ArrayList<Vertex>();
+			}
+		}
 		for(int k = 1; k <= RUNSIZE; k++) {
 			flagMM[k] = true;
+			flagK[k] = true;
 
 			/*			intializeVertices(vertices, NODESIZE);
 			intializeVertices(verticesTemp, NODESIZE);
@@ -259,14 +303,19 @@ public class Dijkstra {
 			 */
 		}
 		//		writer2.close();
-		System.out.println("FLOW\tPRE_DATA\tDIS_DATA\tDSP_DATA\tLEVELCUTMM_DATA\tDSPSH_DATA\tDWSP_DATA\tPRE_DATA_AVG\tDIS_DATA_AVG\tDSP_DATA_AVG\tDSPI_DATA_AVG\tDSPSH_DATA_AVG\tDWSP_DATA_AVG\tPRE_DATA_CI\tDIS_DATA_CI\tDSP_DATA_CI\tDSPI_DATA_CI\tDSPSH_DATA_CI\tDWSP_DATA_CI\tPRE_TIME\tDIS_TIME\tDSP_TIME\tDSPI_TIME\tDSPSH_TIME\tDWSP_TIME\tPRE_OVERLOAD_LINK\tOUR_OVERLOAD_LINK\tDSP_OVERLOAD_LINK\tDSPI_OVERLOAD_LINK\tDSPSH_OVERLOAD_LINK\tDWSP_OVERLOAD_LINK\tPRE_SHORTLOAD_LINK\tOUR_SHORTLOAD_LINK\tDSP_SHORTLOAD_LINK\tDSPI_SHORTLOAD_LINK\tDSPSH_SHORTLOAD_LINK\tDWSP_SHORTLOAD_LINK\tPRE_AVGLOAD_LINK\tOUR_AVGLOAD_LINK\tDSP_AVGLOAD_LINK\tDSPI_AVGLOAD_LINK\tDSPSH_AVGLOAD_LINK\tDWSP_AVGLOAD_LINK");
+		System.out.println("FLOW\tPRE_DATA\tDIS_DATA\tDSP_DATA\tDWSP_DATA\tQ_DATA\tPRE_DATA_AVG\tDIS_DATA_AVG\tDSP_DATA_AVG\tDWSP_DATA_AVG\tQ_DATA_AVG\tPRE_DATA_CI\tDIS_DATA_CI\tDSP_DATA_CI\tDWSP_DATA_CI\tQ_DATA_CI\tPRE_TIME\tDIS_TIME\tDSP_TIME\tDWSP_TIME\tQ_TIME\tPRE_SUCC\tDIS_SUCC\tDSP_SUCC\tDWSP_SUCC\tQ_SUCC");
 		PreEmptionAlgorithms pre = new PreEmptionAlgorithms();
-		for (FLOWSIZE = 50; FLOWSIZE <= 500; FLOWSIZE = FLOWSIZE + 50) {
-
+		for (FLOWSIZE = 1000; FLOWSIZE <= 1000; FLOWSIZE = FLOWSIZE + 100) {
+			
+			prevT = 0;
+			
+			allTotalFlows = 0;
 			totalFlow = 0;
 			preTime = 0;
 			lastIdeaTime = 0;
 			maxForCut = 0;
+			maxSacma = 0;
+			maxQ = 0;
 			maxForPre = 0;
 			maxForDis = 0;
 
@@ -275,12 +324,16 @@ public class Dijkstra {
 			lostDjAll =0;
 			lostWSP = 0;
 			lostCut = 0;
+			lostQ = 0;
+			
 
 			sucPre = 0;
 			sucDis = 0;
 			sucDjAll =0;
 			sucWSP = 0;
 			sucCut = 0;
+			sucQ = 0;
+			
 
 			disTime = 0;
 			djTime=0;
@@ -298,6 +351,7 @@ public class Dijkstra {
 			ciDjI = 0.0;
 			ciDjSH = 0.0;
 			ciCUT =0.0;
+			ciQ = 0.0;
 
 			avgPre = 0.0;
 			avgDis = 0.0;
@@ -306,6 +360,7 @@ public class Dijkstra {
 			avgDjI = 0.0;
 			avgDjSH = 0.0;
 			avgCUT = 0.0;
+			avgQ = 0.0;
 
 			utCO = 0;
 			utLO = 0;
@@ -350,62 +405,102 @@ public class Dijkstra {
 			utLC = 0;
 			utAC = 0;
 			ut0C = 0;
+			
+			utCQ = 0;
+			utLQ = 0;
+			utAQ = 0;
+			ut0Q = 0;
 
-			SummaryStatistics stats = new SummaryStatistics();
-			SummaryStatistics stats2 = new SummaryStatistics();
-			SummaryStatistics stats3 = new SummaryStatistics();
-			SummaryStatistics stats4 = new SummaryStatistics();
 
+			SummaryStatistics stats = new SummaryStatistics();//DIS
+			SummaryStatistics stats1 = new SummaryStatistics();//PRE
+			SummaryStatistics stats2 = new SummaryStatistics();//DSP-SH
+			SummaryStatistics stats3 = new SummaryStatistics();//DWSP
+
+			SummaryStatistics stats4 = new SummaryStatistics();//MP-LCBR
 			SummaryStatistics stats5 = new SummaryStatistics();
 			SummaryStatistics stats6 = new SummaryStatistics();
-			SummaryStatistics stats7 = new SummaryStatistics();
+			for(flagR = 1; flagR <= 5; flagR++) {
+				for (int run = 1; run <= RUNSIZE; run = run + 1) {
+					 allTotalFlows = 0;
+					 kPath = new ArrayList[NODESIZE][NODESIZE];
+						for (int i = 0; i < NODESIZE;i++) {
 
-			EDGESIZE = 0;
-			for (int run = 1; run <= RUNSIZE; run++) {
+							for(int j =0; j <NODESIZE; j++) {
 
-				for (int i = 0; i < NODESIZE; i++) {
+								kPath[i][j] = new ArrayList<Vertex>();
+							}
+						}
+					//NODESIZE = run + 1;
+					totalFlowForPairs = new int[NODESIZE][NODESIZE];
+					chosenPairs = new int[NODESIZE][NODESIZE];
+					for (int i = 0; i < NODESIZE; i++) {
 
-					for (int j =0; j < NODESIZE; j++) {
+						for (int j =0; j < NODESIZE; j++) {
 
-						totalFlowForPairs[i][j] = 0;
+							totalFlowForPairs[i][j] = 0;
+							chosenPairs[i][j] = 0;
+						}
 					}
-				}
-				String fileName1 = "C:\\Users\\erdalEv\\eclipse-workspace\\levelCut-EV\\src\\utResults\\EDGE\\"+"utEdge"+FLOWSIZE+"-"+run+".txt";
-				String fileName2 = "C:\\Users\\erdalEv\\eclipse-workspace\\levelCut-EV\\src\\utResults\\FLOW\\"+"utFlow"+FLOWSIZE+"-"+run+".txt";
-				writer = new BufferedWriter(new FileWriter(fileName1));
-				writer2 = new BufferedWriter(new FileWriter(fileName2));
 
+					if (flagWAX) {
 
-				intializeVertices(vertices, NODESIZE);
-				intializeVertices(verticesTemp, NODESIZE);
+						for(int i = 0; i<20;i++) {
+							int src = Rand.nextInt(run);
+							int dst = Rand.nextInt(run);
 
-				flowArray.clear();
-				flowArrayTemp.clear();
-				flowArray = new ArrayList<Flow>();
-				flowArrayTemp = new ArrayList<Flow>();
-				flowArrayTemp2 = new ArrayList<Flow>();
-				flowArrayTemp3 = new ArrayList<Flow>();
-				flowArrayTemp4 = new ArrayList<Flow>();
-				flowArrayTemp5 = new ArrayList<Flow>();
-				flowArrayTemp6 = new ArrayList<Flow>();
+							while(src == dst || chosenPairs[src][dst] == 1) {
+								src = Rand.nextInt(run);
+								dst = Rand.nextInt(run);
 
-				// Topology okuma...
-				//readFileYeni();
-				//basicGraph2();
-				//readFileYeni();
-				readFileYeni2(run);
-				//readFile();
+							}
 
-				EDGESIZE += edges.size();
+							chosenPairs[src][dst] = 1;
 
-				utDD = new double[SHUFFLET][edges.size()];
+							outmostNodesSource[i] = src;
+							outmostNodesTarget[i] = dst;
+						}
+					}
+					String fileName1 = "C:\\Users\\erdalEv\\eclipse-workspace\\levelCut-EV\\src\\utResults\\EDGE\\"+"utEdge"+FLOWSIZE+"-"+run+".txt";
+					String fileName2 = "C:\\Users\\erdalEv\\eclipse-workspace\\levelCut-EV\\src\\utResults\\FLOW\\"+"utFlow"+FLOWSIZE+"-"+run+".txt";
+					String fileName3 = "C:\\Users\\erdalEv\\eclipse-workspace\\levelCut-EV\\src\\utResults\\DL\\"+"utFlow"+FLOWSIZE+"-"+run+".txt";
 
-				dspPaths = new ArrayList[SHUFFLET];
-				BufferedReader br = new BufferedReader(new FileReader("C:\\Users\\erdalEv\\eclipse-workspace\\levelCut-EV\\pairs.txt"));
-				String line;
-				//				outmostNodesSource = new LinkedList<Integer>();
-				//				outmostNodesTarget = new LinkedList<Integer>();
-				/*
+					writer = new PrintWriter(new BufferedWriter(new FileWriter(fileName1,true)));
+					writer2 = new PrintWriter(new BufferedWriter(new FileWriter(fileName2, true)));
+					writer3 = new PrintWriter(new BufferedWriter(new FileWriter(fileName3, true)));
+					vertices = new Vertex[NODESIZE];
+					verticesTemp = new Vertex[NODESIZE];
+					intializeVertices(vertices, NODESIZE);
+					intializeVertices(verticesTemp, NODESIZE);
+
+					flowArray.clear();
+					flowArrayTemp.clear();
+					flowArray = new ArrayList<Flow>();
+					flowArrayTemp = new ArrayList<Flow>();
+					flowArrayTemp2 = new ArrayList<Flow>();
+					flowArrayTemp3 = new ArrayList<Flow>();
+					flowArrayTemp4 = new ArrayList<Flow>();
+					flowArrayTemp5 = new ArrayList<Flow>();
+					flowArrayTemp6 = new ArrayList<Flow>();
+
+					// Topology okuma...
+					//readFileYeni();
+					//basicGraph2();
+					//readFileYeni();
+					readFileYeni2(run);
+					//readFileWAX(run);
+					//readFile();
+
+					EDGESIZE += edges.size();
+
+					utDD = new double[SHUFFLET][edges.size()];
+
+					dspPaths = new ArrayList[SHUFFLET];
+					BufferedReader br = new BufferedReader(new FileReader("C:\\Users\\erdalEv\\eclipse-workspace\\levelCut-EV\\pairs.txt"));
+					String line;
+					//				outmostNodesSource = new LinkedList<Integer>();
+					//				outmostNodesTarget = new LinkedList<Integer>();
+					/*
 				while ((line = br.readLine()) != null) {
 
 					if(!line.isEmpty()) {
@@ -429,16 +524,16 @@ public class Dijkstra {
 					}
 
 				}*/
-				//				System.out.println("!!"+outmostNodesSource);
-				//				System.out.println("??"+outmostNodesTarget);
-				//				for(Vertex v: vertices) {
-				//					v.hopCount = 0;
-				//					v.minDistance = Double.MAX_VALUE;
-				//				}
-				//				System.out.println(comPath.hopCount(vertices[outmostNodesSource.get(2)], vertices[outmostNodesTarget.get(2)], edges, vertices));
+					//				System.out.println("!!"+outmostNodesSource);
+					//				System.out.println("??"+outmostNodesTarget);
+					//				for(Vertex v: vertices) {
+					//					v.hopCount = 0;
+					//					v.minDistance = Double.MAX_VALUE;
+					//				}
+					//				System.out.println(comPath.hopCount(vertices[outmostNodesSource.get(2)], vertices[outmostNodesTarget.get(2)], edges, vertices));
 
-				//readFile();
-				/*				for (int i = 0; i < outmostNodesSource.length; i++) {
+					//readFile();
+					/*				for (int i = 0; i < outmostNodesSource.length; i++) {
 					for(int j = 0; j < outmostNodesTarget.length; j++) {
 						for(Vertex v: vertices) {
 							v.hopCount = 0;
@@ -459,26 +554,27 @@ public class Dijkstra {
 
 					}
 				}*/
-				for (int j = 0; j < FLOWSIZE; j++) {
+					Rand.setSeed(run*100);
+					for (int j = 0; j < FLOWSIZE; j++) {
 
-					sourceNode =Rand.nextInt(outmostNodesSource.length);// Rand.nextInt(NODESIZE);//outmostNodesSource[Rand.nextInt(outmostNodesSource.length)];
-					//burasi 32 lik graph icin
+						sourceNode =Rand.nextInt(outmostNodesSource.length);// Rand.nextInt(NODESIZE);//outmostNodesSource[Rand.nextInt(outmostNodesSource.length)];
+						//burasi 32 lik graph icin
 
-					targetNode = sourceNode;////outmostNodesTarget[Rand.nextInt(outmostNodesTarget.length)];
-					//			while(targetNode==sourceNode) {
+						targetNode = sourceNode;////outmostNodesTarget[Rand.nextInt(outmostNodesTarget.length)];
+						//			while(targetNode==sourceNode) {
 
-					//				sourceNode = Rand.nextInt(NODESIZE);//Rand.nextInt(outmostNodesSource.size());outmostNodesSource[Rand.nextInt(outmostNodesSource.length)];
-					//				targetNode = Rand.nextInt(NODESIZE);//sourceNode;////outmostNodesTarget[Rand.nextInt(outmostNodesTarget.length)];
+						//				sourceNode = Rand.nextInt(NODESIZE);//Rand.nextInt(outmostNodesSource.size());outmostNodesSource[Rand.nextInt(outmostNodesSource.length)];
+						//				targetNode = Rand.nextInt(NODESIZE);//sourceNode;////outmostNodesTarget[Rand.nextInt(outmostNodesTarget.length)];
 
-					//			}
-					//	sourceNode = 1; //Rand.nextInt(NODESIZE);
-					//	targetNode = 30; //Rand.nextInt(NODESIZE);
-					//for(Vertex v: vertices) {
-					//	v.hopCount = 0;
-					//	v.minDistance = Double.MAX_VALUE;
-					//}
-					//if (hopCountSD[run][sourceNode][targetNode] < 4) {
-					/*	int x = 0;//comPath.hopCount(vertices[sourceNode], vertices[targetNode], edges, vertices);
+						//			}
+						//	sourceNode = 1; //Rand.nextInt(NODESIZE);
+						//	targetNode = 30; //Rand.nextInt(NODESIZE);
+						//for(Vertex v: vertices) {
+						//	v.hopCount = 0;
+						//	v.minDistance = Double.MAX_VALUE;
+						//}
+						//if (hopCountSD[run][sourceNode][targetNode] < 4) {
+						/*	int x = 0;//comPath.hopCount(vertices[sourceNode], vertices[targetNode], edges, vertices);
 
 						while (targetNode == sourceNode || x == 0) {
 							for(Vertex v: vertices) {
@@ -510,9 +606,9 @@ public class Dijkstra {
 					Flow f = new Flow(vertices[sourceNode],
 							vertices[targetNode], 1 + Rand.nextInt(flowRange),
 							j);
-					 */
-					int demandF = 1+ Rand.nextInt(25);
-					/*					double pr = Rand.nextDouble();
+						 */
+						int demandF = 1+ Rand.nextInt(flowRange);
+						/*					double pr = Rand.nextDouble();
 					if( pr < 0.25) {//if(pr<0.5){
 						demandF = 1 + Rand.nextInt(10);
 					}else if(pr < 0.75) {
@@ -520,214 +616,696 @@ public class Dijkstra {
 					}else {
 						demandF = 25 + Rand.nextInt(25);
 					}*/
-					Flow f = new Flow(vertices[outmostNodesSource[sourceNode]],vertices[outmostNodesTarget[targetNode]],demandF,j);//new Flow(vertices[sourceNode],vertices[targetNode],demandF,j);//
-					allTotalFlows += f.cost;
-					totalFlowForPairs[f.source.id][f.target.id] = totalFlowForPairs[f.source.id][f.target.id] + f.cost;
+						Flow f = new Flow(vertices[outmostNodesSource[sourceNode]],vertices[outmostNodesTarget[targetNode]],demandF,j);//new Flow(vertices[sourceNode],vertices[targetNode],demandF,j);//
+						allTotalFlows += f.cost;
+						totalFlowForPairs[f.source.id][f.target.id] = totalFlowForPairs[f.source.id][f.target.id] + f.cost;
 
-					flowArray.add(f);
-					flowArrayTemp.add(f);
-					flowArrayTemp2.add(f);
-					flowArrayTemp3.add(f);
-					flowArrayTemp4.add(f);
-					flowArrayTemp5.add(f);
-					flowArrayTemp6.add(f);
-					//					vertices[sourceNode].inDemandFlows.add(j);
-					//					verticesTemp[sourceNode].inDemandFlows.add(j);
-					//					vertices[targetNode].outDemandFlows.add(j);
-					//					verticesTemp[targetNode].outDemandFlows.add(j);
-				}
+						flowArray.add(f);
+						flowArrayTemp.add(f);
+						flowArrayTemp2.add(f);
+						flowArrayTemp3.add(f);
+						flowArrayTemp4.add(f);
+						flowArrayTemp5.add(f);
+						flowArrayTemp6.add(f);
+						//					vertices[sourceNode].inDemandFlows.add(j);
+						//					verticesTemp[sourceNode].inDemandFlows.add(j);
+						//					vertices[targetNode].outDemandFlows.add(j);
+						//					verticesTemp[targetNode].outDemandFlows.add(j);
+					}
 
-				//System.out.println("TOT: " + allTotalFlows);
-				//
-				//				//Pre
-				//				for (Vertex v : vertices) {
-				//					v.minDistance = Double.MAX_VALUE;
-				//					v.previous = null;
-				//					v.visit = false;
-				//				}
-				//
-				/*								System.out.println("FLOWS\n");
+					//System.out.println("TOT: " + allTotalFlows);
+					//
+					//				//Pre
+					//				for (Vertex v : vertices) {
+					//					v.minDistance = Double.MAX_VALUE;
+					//					v.previous = null;
+					//					v.visit = false;
+					//				}
+					//
+					/*								System.out.println("FLOWS\n");
 								for (Flow f:flowArray){
 									System.out.println(f.source.id+"\t"+f.target.id+"\t " + f.cost);
 									System.out.println(f.source.id+"->"+f.target.id+": " + totalFlowForPairs[f.source.id][f.target.id]);
 									System.out.println(hopCountSD[run][f.source.id][f.target.id]);
 								}*/
-				//				System.out.println("----"+allTotalFlows);
+					//				System.out.println("----"+allTotalFlows);
 
 
-				//				long startTime = System.nanoTime();
+					//				long startTime = System.nanoTime();
 
 
 
 
-				//				long endTime = System.nanoTime();
-				//				System.out.println((endTime-startTime)/ (1e6 * RUNSIZE));
-				//				copyGraph2();
+					//				long endTime = System.nanoTime();
+					//				System.out.println((endTime-startTime)/ (1e9 * RUNSIZE));
+					//				copyGraph2();
 
 
-				edges.clear();
+					edges.clear();
+					for (int t = 0; t < edges.size(); t++) {
+						vertices[t].adjacencies.clear();
+					}
+					comPath.setMax(0);
+					
+					/*DIS ALGO*/
+					writer = new PrintWriter(new BufferedWriter(new FileWriter(fileName1,true)));
+					writer2 = new PrintWriter(new BufferedWriter(new FileWriter(fileName2, true)));
+					writer3 = new PrintWriter(new BufferedWriter(new FileWriter(fileName3, true)));
+					
+					if(flagR == 1) {
+						copyGraph2();
+						//Collections.sort(flowArray, Collections.reverseOrder());
+						long startMM = System.nanoTime();
+						long resMM = MMoffline(flowArray, outmostNodesSource,outmostNodesTarget, run);
+						long endMM = System.nanoTime();
+						//disTime += (endMM-startMM);
+						//System.out.println("MM " + disTime/1e9);
+						maxForDis  = maxForDis + resMM ;
+						stats.addValue(endMM-startMM);
+						comPath.setMax(0);
+						Thread.sleep(10);
+						System.gc();
+						//System.out.println(maxDJ + "--" + allTotalFlows);
+						//System.out.println();
+						//Collections.sort(edges, Collections.reverseOrder());
+						if(flagUT) {
+							writer.print("DIS\t");
+							for(Edge e: edges) {
+								double ut = (double)(e.capTemp-e.capacity)/e.capTemp;
+								String utS = Double.toString(ut) + "\t";
+								writer.print(utS);
+								//System.out.print(ut+"\t");
+								if(ut > 0.85) {
+									//System.out.println(e.source.name+"->"+e.target.name+": "+ut);
+									utCO++;
+								}
+								if(ut < 0.25)
+									utLO++;
+								if(0.25 <= ut && ut <= 0.85)
+									utAO++;
+								if(ut == 0)
+									ut0O++;
+								if(ut > 1.0)
+									System.out.println(e.source + " - " + e.target +" " + e.capacity);
+								if(e.capacity < 0) {
+									System.out.println(e.source + " - " + e.target +" " + e.capacity);
+									System.out.println(comPath.findEdge(e.sourceId, e.targetId, edges).capacity);
 
-				for (int t = 0; t < edges.size(); t++) {
-					vertices[t].adjacencies.clear();
-				}
-				comPath.setMax(0);
-				copyGraph2();
-				//System.out.println(sumOfFlow(flowArray));
-				/*				if (lastIdea(flowArray, run)) {
+									//System.out.println(e.flowCount);
+								}
+
+
+							}
+							//				System.out.println("OUR"+"\t"+(double)utC/edges.size() +"\t" +(double)utA/edges.size()+"\t" +(double)utL/edges.size() + "\t"+(double)ut0/edges.size());
+
+							//	System.out.println();
+
+
+						}
+
+						if(sucDis == FLOWSIZE) {
+							comPath.maxUTofPath(flowArray, edges, -1);
+							writer2.print("\nDis\t");
+							writer3.print("\nDis\t");
+							for(Flow f: flowArray) {
+
+								//System.out.println(f.id+ "\t" + f.lastUT);
+								String utS = Double.toString(f.lastUT) + "\t";//Integer.toString(f.id)+"\t"+
+								writer2.print(utS);
+							}
+
+							for(Flow f: flowArray) {
+
+								//System.out.println(f.id+ "\t" + f.lastUT);
+								String utD = Double.toString(f.lastDL) + "\t";//Integer.toString(f.id)+"\t"+
+								writer3.print(utD);
+							}
+						}
+						sucDis = 0;
+						writer.flush();
+						writer2.flush();
+						writer3.flush();
+						writer.close();
+						writer2.close();
+						writer3.close();
+						edges.clear();
+
+						for (int t = 0; t < edges.size(); t++) {
+							vertices[t].adjacencies.clear();
+						}
+
+					}
+					/*PRE ALGO*/
+					writer = new PrintWriter(new BufferedWriter(new FileWriter(fileName1,true)));
+					writer2 = new PrintWriter(new BufferedWriter(new FileWriter(fileName2, true)));
+					writer3 = new PrintWriter(new BufferedWriter(new FileWriter(fileName3, true)));
+					if(flagR == 2) {
+						copyGraph2();
+
+
+
+
+						//				if(maxDJ < 0.9*allTotalFlows) {
+						//System.out.println(FLOWSIZE+ "--");
+						//continue;
+
+
+						//				System.out.println((float)maxDJ/(float)allTotalFlows);
+						//System.out.println("PRE");
+						long startTime = System.nanoTime();
+						//Collections.sort(flowArrayTemp, Collections.reverseOrder());
+						int pRes = pre.callGreedy(flowArrayTemp, edges, vertices);
+						sucPre = pre.DList.size();
+						//System.out.println("----"+pRes);
+						maxForPre += pRes;
+
+						long endTime = System.nanoTime();
+
+
+						stats1.addValue(endTime-startTime);
+
+
+						preTime += (endTime - startTime);
+
+						//System.out.println("PRE: " + preTime/1e9);
+						Thread.sleep(10);
+						//				Collections.sort(edges, Collections.reverseOrder());
+
+						if(flagUT) {
+							writer.print("\nPRE\t");
+							for(Edge e: edges) {
+								double ut = (double)(e.capTemp-e.capacity)/e.capTemp;
+								String utS = Double.toString(ut) + "\t";
+								writer.print(utS);
+								//					System.out.print(ut+"\t");
+								if(ut > 0.85) {
+									//System.out.println(ut);
+									utCP++;
+								}
+								if(ut < 0.25)
+									utLP++;
+
+								if(0.25 <= ut && ut <= 0.85)
+									utAP++;
+
+								if(ut == 0)
+									ut0P++;
+							}
+
+
+						}
+						if(sucPre == FLOWSIZE) {
+							comPath.maxUTofPath(flowArrayTemp, edges,-1);
+
+							writer2.print("\nPRE\t");
+							for(Flow f: flowArrayTemp) {
+
+								//System.out.println(f.id+ "\t" + f.lastUT);
+								String utS = Double.toString(f.lastUT) + "\t";//Integer.toString(f.id)+"\t"+
+								writer2.print(utS);
+							}
+
+							writer3.print("\nPRE\t");
+							for(Flow f: flowArrayTemp) {
+
+								//System.out.println(f.id+ "\t" + f.lastUT);
+								String utD = Double.toString(f.lastDL) + "\t";//Integer.toString(f.id)+"\t"+
+								writer3.print(utD);
+							}
+						}
+						sucPre = 0;
+						writer.flush();
+						writer2.flush();
+						writer3.flush();
+						writer.close();
+						writer2.close();
+						writer3.close();
+						System.gc();
+						//////comPath.maxUTofPath(flowArrayTemp, edges, -1);
+
+
+						//				System.out.println("PRE"+"\t"+(double)utC/edges.size() +"\t" +(double)utA/edges.size()+"\t" +(double)utL/edges.size() + "\t"+(double)ut0/edges.size());
+						//System.out.println(utC +"--" + utA+"--"+ utL +"-0-"+ut0);
+
+
+						comPath.setMax(0);
+						//				System.out.println();
+						edges.clear();
+
+						for (int t = 0; t < edges.size(); t++) {
+							vertices[t].adjacencies.clear();
+						}
+					}
+
+					/*DSP-SH*/
+					writer = new PrintWriter(new BufferedWriter(new FileWriter(fileName1,true)));
+					writer2 = new PrintWriter(new BufferedWriter(new FileWriter(fileName2, true)));
+					writer3 = new PrintWriter(new BufferedWriter(new FileWriter(fileName3, true)));
+					if(flagR == 3) {
+						long maxStepByStep = 0;
+
+						copyGraph2();
+
+
+						long shfTot = 0;
+
+
+						int shf = 0;
+						int highestS = -1;
+						//System.out.println(djTime);
+						long ssT = 0;
+						long endT = 0;
+						while(shf < SHUFFLET) {
+
+							comPath.setMax(0);
+
+							edges.clear();
+
+							for (int t = 0; t < edges.size(); t++) {
+								vertices[t].adjacencies.clear();
+							}
+							copyGraph2();
+							shfTot = 0;
+
+							Collections.shuffle(flowArrayTemp2);
+							Thread.sleep(10);
+							maxStepByStep = 0;
+							//				System.out.println("DSP");
+
+							ssT = System.nanoTime();
+							for(Flow f: flowArrayTemp2) {
+								
+								int x = comPath.computePathwoRate(vertices, edges, f, shf);
+								if (x==1) {
+									//maxDJ = maxDJ + f.cost;
+									maxStepByStep += f.cost;
+									sucDj[shf]++;
+								}
+								else
+									lostDj[shf] = lostDj[shf] + 1;
+
+							}
+							endT = System.nanoTime();
+							djTime += (endT-ssT);
+
+							stats2.addValue(endT-ssT);		
+							//System.out.println("DJ "+djTime/1e9);
+							if(shfTot < maxStepByStep) {
+								shfTot = maxStepByStep;
+								highestS = shf;
+
+							}
+
+
+							for(Edge e: edges) {
+								double ut = (double)(e.capTemp-e.capacity)/e.capTemp;
+								utDD[shf][e.id] = ut;
+								if(ut > 0.85) {
+									//System.out.println(ut);
+									utCD[shf]++;
+								}
+								if(ut < 0.25)
+									utLD[shf]++;
+								if(0.25 <= ut && ut <= 0.85)
+									utAD[shf]++;
+
+								if(ut == 0)
+									ut0D[shf]++;
+							}
+							//System.out.println(maxStepByStep + " " + allTotalFlows);
+							if (maxStepByStep == allTotalFlows) {
+								//System.out.println("---");
+								break;}
+							shf = shf + 1;
+
+						}
+						//System.out.println(shf);
+						//System.out.println(djTime/1e9);
+
+						maxDJ += shfTot;
+						utCDL = utCD[highestS];
+						utLDL = utLD[highestS];
+						utADL = utAD[highestS];
+						ut0DL = ut0D[highestS];
+						sucDjAll = sucDj[highestS];
+						lostDjAll = lostDj[highestS];
+
+
+						if(flagUT) {
+
+
+							writer.print("\nSHF DSP\t");
+							for(Edge e: edges) {
+								//					System.out.print(utDD[highestS][e.id]+"\t");
+								String utS = Double.toString(utDD[highestS][e.id]) + "\t";
+								writer.print(utS);
+								//System.out.println();
+							}
+
+						}
+
+
+						if(sucDjAll == FLOWSIZE) {
+							writer2.print("\nSHF DSP\t");
+							writer3.print("\nSHF DSP\t");
+							comPath.maxUTofPath(flowArrayTemp2, edges,highestS);
+							for(Flow f: flowArrayTemp2) {
+
+								//System.out.println(f.id+ "\t" + f.lastUT);
+								String utS = Double.toString(f.lastUT) + "\t"; //Integer.toString(f.id)+"\t"+
+								writer2.print(utS);
+							}
+							for(Flow f: flowArrayTemp2) {
+
+								//System.out.println(f.id+ "\t" + f.lastUT);
+								String utD = Double.toString(f.lastDL) + "\t"; //Integer.toString(f.id)+"\t"+
+								writer3.print(utD);
+							}
+						}
+						sucDjAll=0;
+						writer.flush();
+						writer2.flush();
+						writer3.flush();
+
+						writer.close();
+						writer2.close();
+						writer3.close();
+						Thread.sleep(10);
+						System.gc();
+
+						//				Collections.sort(edges, Collections.reverseOrder());
+
+
+						//System.out.println(utC+"--"+utA+"--"+utL+"-0-"+ut0);
+
+						//				System.out.println("DSP(GA)"+"\t"+(double)utC/edges.size() +"\t" +(double)utA/edges.size()+"\t" +(double)utL/edges.size() + "\t"+(double)ut0/edges.size());
+
+						//DSPI
+
+
+						comPath.setMax(0);
+
+
+						//				int prevC = flowArray.get(0).cost;
+						//				System.out.println("C: "+ prevC);
+						for (Vertex v : vertices) {
+							v.minDistance = Double.MAX_VALUE;
+							v.previous = null;
+							v.visit = false;
+						}
+
+					}
+					//System.out.println(sumOfFlow(flowArray));
+					/*				if (lastIdea(flowArray, run)) {
 					maxForCut += comPath.maxOfFlow;//sumOfFlow(flowArray);
 				} else
 					maxForCut += comPath.maxOfFlow;
 
 				System.out.println(maxForCut);*/
-				/*				Scanner sc = new Scanner(System.in);
+					/*				Scanner sc = new Scanner(System.in);
 				sc.next();
-				 */
-				Collections.sort(flowArray, Collections.reverseOrder());
-				long startMM = System.nanoTime();
-				long resMM = MMoffline(flowArray, outmostNodesSource,outmostNodesTarget, run);
-				long endMM = System.nanoTime();
-				disTime += (endMM-startMM);
-				maxForDis  = maxForDis + resMM ;
-				stats4.addValue(resMM);
-				comPath.setMax(0);
+					 */
+					
+					/*DWSP*/
 
-				//System.out.println(maxDJ + "--" + allTotalFlows);
-				//System.out.println();
-				//Collections.sort(edges, Collections.reverseOrder());
-				writer.write("DIS\t");
-				for(Edge e: edges) {
-					double ut = (double)(e.capTemp-e.capacity)/e.capTemp;
-					String utS = Double.toString(ut) + "\t";
-					writer.append(utS);
-					//System.out.print(ut+"\t");
-					if(ut > 0.85) {
-						//System.out.println(e.source.name+"->"+e.target.name+": "+ut);
-						utCO++;
+					writer = new PrintWriter(new BufferedWriter(new FileWriter(fileName1,true)));
+					writer2 = new PrintWriter(new BufferedWriter(new FileWriter(fileName2, true)));
+					writer3 = new PrintWriter(new BufferedWriter(new FileWriter(fileName3, true)));
+
+					if(flagR == 4) {
+						copyGraph2();
+
+
+						long startTime2 = System.nanoTime();
+						long maxStepByStep  = 0;
+						for(Flow f: flowArrayTemp3) {
+							for (Vertex v : vertices) {
+								v.minDistance = 0.0;//Double.MAX_VALUE;
+								v.previous = null;
+								v.visit = false;
+							}
+							int x = comPath.computePaths2(f.source, f.target, edges, vertices, f);
+							if (x==1) {
+								maxWSP = maxWSP + f.cost;
+								maxStepByStep = maxStepByStep + f.cost;
+								sucWSP++;
+
+
+							}
+							else
+								lostWSP = lostWSP + 1;
+						}
+						long endTime2 = System.nanoTime();
+						wspTime += (endTime2-startTime2);
+						Thread.sleep(10);
+						stats3.addValue(endTime2-startTime2);
+
+
+						if(flagUT) {
+							writer.print("\nDWSP\t");
+							for(Edge e: edges) {
+								double ut = (double)(e.capTemp-e.capacity)/e.capTemp;
+								//System.out.print(ut+"\t");
+								String utS = Double.toString(ut) + "\t";
+								writer.print(utS);
+								if(ut > 0.85) {
+									//System.out.println(ut);
+									utCW++;
+								}
+								if(ut < 0.25)
+									utLW++;
+								if(0.25 <= ut && ut <= 0.85)
+									utAW++;
+
+								if(ut == 0)
+									ut0W++;
+							}
+
+						}
+
+						if(sucWSP==FLOWSIZE) {
+							comPath.maxUTofPath(flowArrayTemp3, edges,-1);
+
+							writer2.print("\n DWSP\t");
+							for(Flow f: flowArrayTemp3) {
+
+								//System.out.println(f.id+ "\t" + f.lastUT);
+								String utS = Double.toString(f.lastUT) + "\t";//Integer.toString(f.id)+"\t"+
+								writer2.print(utS);
+							}
+
+							writer3.print("\n DWSP\t");
+							for(Flow f: flowArrayTemp3) {
+
+								//System.out.println(f.id+ "\t" + f.lastUT);
+								String utD = Double.toString(f.lastDL) + "\t";//Integer.toString(f.id)+"\t"+
+								writer3.print(utD);
+							}
+						}
+						sucWSP = 0;
+						writer.flush();
+						writer2.flush();
+						writer3.flush();
+
+						//				System.out.println("DWSP"+"\t"+(double)utC/edges.size() +"\t" +(double)utA/edges.size()+"\t" +(double)utL/edges.size() + "\t"+(double)ut0/edges.size());
+						writer.close();
+						writer2.close();
+						writer3.close();
+						System.gc();
+						comPath.setMax(0);
+
+						edges.clear();
+
+						for (int t = 0; t < edges.size(); t++) {
+							vertices[t].adjacencies.clear();
+						}
 					}
-					if(ut < 0.25)
-						utLO++;
-					if(0.25 <= ut && ut <= 0.85)
-						utAO++;
-					if(ut == 0)
-						ut0O++;
-					if(ut > 1.0)
-						System.out.println(e.source + " - " + e.target +" " + e.capacity);
-					if(e.capacity < 0) {
-						System.out.println(e.source + " - " + e.target +" " + e.capacity);
-						System.out.println(comPath.findEdge(e.sourceId, e.targetId, edges).capacity);
+					
+					
+					/*MP-LCBR*/
+					/*Bu kisim k paths bulmak icin*/
+					if(flagK[run]) {
+					copyGraph2();
 
-						//System.out.println(e.flowCount);
+					//System.out.println("!!");
+					QL = new double[EDGESIZE];
+					for(Edge e: edges)
+						QL[e.id] = 0;
+					comPath.floydAlg(edges, vertices, 0, kPath);
+					
+					for(int i = 0; i < outmostNodesSource.length; i++) {
+						Vertex source = vertices[outmostNodesSource[i]];
+						Vertex target = vertices[outmostNodesTarget[i]];
+						comPath.k_paths(source, target, edges, vertices, kPath, 1);
+						
 					}
 
+					for(Edge e: edges) {
+						
+						
+						for(int i = 0; i < outmostNodesSource.length; i++) {
+							int y = 0;
+							Vertex source = vertices[outmostNodesSource[i]];
+							Vertex target = vertices[outmostNodesTarget[i]];
+							for (int k =0; k < 5; k++) {
+								
+								ArrayList<Vertex> path = (ArrayList<Vertex>) kPath[source.id][target.id].get(k);
+								
+								if(path != null) {
+									Vertex temp = path.get(0);
+									for(int a = 1; a < path.size(); a++) {
+										Vertex next = path.get(a);
+										Edge ex = comPath.findEdge(temp.id, next.id, edges);
+										if(ex != null && ex.id == e.id){
+											
+											y++;
+											
+										}
+										temp = next;
+										
+									}
+								}
+							}
+							
+							e.rate[source.id][target.id] = (double) y/K_VAL;
+							
+							QL[e.id] = QL[e.id] + e.rate[source.id][target.id]*totalFlowForPairs[source.id][target.id];
+							
+						}
 
-				}
-				//				System.out.println("OUR"+"\t"+(double)utC/edges.size() +"\t" +(double)utA/edges.size()+"\t" +(double)utL/edges.size() + "\t"+(double)ut0/edges.size());
-
-				//	System.out.println();
-				if(sucDis == FLOWSIZE) {
-					comPath.maxUTofPath(flowArray, edges, -1);
-					writer2.write("Dis\n");
-					for(Flow f: flowArray) {
-
-						//System.out.println(f.id+ "\t" + f.lastUT);
-						String utS = Integer.toString(f.id)+"\t"+Double.toString(f.lastUT) + "\n";
-						writer2.append(utS);
 					}
-				}
+					edges.clear();
 
-				edges.clear();
-
-				for (int t = 0; t < edges.size(); t++) {
-					vertices[t].adjacencies.clear();
-				}
-				copyGraph2();
-				long maxStepByStep = 0;
-
-
-
-
-				//				if(maxDJ < 0.9*allTotalFlows) {
-				//System.out.println(FLOWSIZE+ "--");
-				//continue;
-
-
-				//				System.out.println((float)maxDJ/(float)allTotalFlows);
-				//System.out.println("PRE");
-				long startTime = System.nanoTime();
-				//Collections.sort(flowArrayTemp, Collections.reverseOrder());
-				int pRes = pre.callGreedy(flowArrayTemp, edges, vertices);
-				sucPre = pre.DList.size();
-				//System.out.println("----"+pRes);
-				maxForPre += pRes;
-				stats2.addValue(pRes);
-
-				long endTime = System.nanoTime();
-
-				//				Collections.sort(edges, Collections.reverseOrder());
-				writer.append("\nPRE\t");
-				for(Edge e: edges) {
-					double ut = (double)(e.capTemp-e.capacity)/e.capTemp;
-					String utS = Double.toString(ut) + "\t";
-					writer.append(utS);
-					//					System.out.print(ut+"\t");
-					if(ut > 0.85) {
-						//System.out.println(ut);
-						utCP++;
+					for (int t = 0; t < edges.size(); t++) {
+						vertices[t].adjacencies.clear();
 					}
-					if(ut < 0.25)
-						utLP++;
-
-					if(0.25 <= ut && ut <= 0.85)
-						utAP++;
-
-					if(ut == 0)
-						ut0P++;
-				}
-				
-				if(sucPre == FLOWSIZE) {
-					comPath.maxUTofPath(flowArrayTemp3, edges,-1);
-
-					writer2.write("\nPRE\n");
-					for(Flow f: flowArrayTemp) {
-
-						//System.out.println(f.id+ "\t" + f.lastUT);
-						String utS = Integer.toString(f.id)+"\t"+Double.toString(f.lastUT) + "\n";
-						writer2.append(utS);
+					flagK[run] = false;
 					}
-				}
-				////comPath.maxUTofPath(flowArrayTemp, edges, -1);
+					Thread.sleep(10);
+					System.gc();
+					
+					writer = new PrintWriter(new BufferedWriter(new FileWriter(fileName1,true)));
+					writer2 = new PrintWriter(new BufferedWriter(new FileWriter(fileName2, true)));
+					writer3 = new PrintWriter(new BufferedWriter(new FileWriter(fileName3, true)));
 
-				/*		writer2.write("\nPRE\n");
-				for(Flow f: flowArrayTemp) {
+					if(flagR == 5) {
+						copyGraph2();
+						
 
-					//System.out.println(f.id+ "\t" + f.lastUT);
-					String utS = Integer.toString(f.id)+"\t"+Double.toString(f.lastUT) + "\n";
-					writer2.append(utS);
-				}
-				 */		//				System.out.println("PRE"+"\t"+(double)utC/edges.size() +"\t" +(double)utA/edges.size()+"\t" +(double)utL/edges.size() + "\t"+(double)ut0/edges.size());
-				//System.out.println(utC +"--" + utA+"--"+ utL +"-0-"+ut0);
-				preTime += (endTime - startTime);
+						long maxStepByStep  = 0;
+						long startTime2 = 0;
+						long endTime2 = 0;
+						//Collections.sort(flowArrayTemp4, Collections.reverseOrder());
+						
+						for(Flow f: flowArrayTemp4) {
+							startTime2 = System.nanoTime();
+							ArrayList<Vertex> path = comPath.computePathwithQLRate(vertices, edges, f, QL);
+							ArrayList<Integer> edgeOfPath = new ArrayList<Integer>();
+							//System.out.println(" "+f.cost+ ">" +f.source+"->"+f.target+": "+path);
+							//System.out.println(path);
+							//Burda path > flow kabul ve link arrangement like RBW, flowCount vs, yoksa red.
+							endTime2 = System.nanoTime();
+							QTime += (endTime2-startTime2);
+							if (path != null) {
+								maxQ+= f.cost;
+								f.path = path;
+								maxStepByStep = maxStepByStep + f.cost;
+								sucQ++;
+								Vertex temp = path.get(0);
 
-				comPath.setMax(0);
-				//				System.out.println();
-				edges.clear();
+								for(int a =1; a <path.size();a++){
 
-				for (int t = 0; t < edges.size(); t++) {
-					vertices[t].adjacencies.clear();
-				}
+									Vertex next = path.get(a);
+									
+									Edge e = comPath.findEdge(temp.id, next.id, edges);
+									
+									if(e != null){
+										edgeOfPath.add(e.id);
+										QL[e.id] = QL[e.id] + (1-e.rate[f.source.id][f.target.id])*f.cost;
+									}
+									temp = next;
+								}
 
-				copyGraph2();
+							}else {
+								lostQ++;
+							}
+					
+							
+							startTime2 = System.nanoTime();
+							for(Edge e: edges) {
+								if(!edgeOfPath.contains(e.id)) {
+									QL[e.id] = QL[e.id]-e.rate[f.source.id][f.target.id]*f.cost;
+								}
+							}
+							endTime2 = System.nanoTime();
+							QTime += (endTime2-startTime2);
+						}
+						long stT = (QTime-prevT);
+						prevT = QTime;
+						Thread.sleep(10);
+						stats4.addValue(stT);
 
 
+						if(flagUT) {
+							writer.print("\nMP-LCBR\t");
+							for(Edge e: edges) {
+								double ut = (double)(e.capTemp-e.capacity)/e.capTemp;
+								//System.out.print(ut+"\t");
+								String utS = Double.toString(ut) + "\t";
+								writer.print(utS);
+								if(ut > 0.85) {
+									//System.out.println(ut);
+									utCQ++;
+								}
+								if(ut < 0.25)
+									utLQ++;
+								if(0.25 <= ut && ut <= 0.85)
+									utAQ++;
 
+								if(ut == 0)
+									ut0Q++;
+							}
 
-				long shfTot = 0;
-				startTime = System.nanoTime();
+						}
 
-				int shf = 0;
-				int highestS = -1;
-				while(shf < SHUFFLET) {
+						if(sucQ==FLOWSIZE) {
+							comPath.maxUTofPath(flowArrayTemp4, edges,-1);
 
+							writer2.print("\n MP-LCBR\t");
+							for(Flow f: flowArrayTemp4) {
+
+								//System.out.println(f.id+ "\t" + f.lastUT);
+								String utS = Double.toString(f.lastUT) + "\t";//Integer.toString(f.id)+"\t"+
+								writer2.print(utS);
+							}
+
+							writer3.print("\n MP-LCBR\t");
+							for(Flow f: flowArrayTemp4) {
+
+								//System.out.println(f.id+ "\t" + f.lastUT);
+								String utD = Double.toString(f.lastDL) + "\t";//Integer.toString(f.id)+"\t"+
+								writer3.print(utD);
+							}
+						}
+						sucQ = 0;
+						writer.flush();
+						writer2.flush();
+						writer3.flush();
+
+						//				System.out.println("DWSP"+"\t"+(double)utC/edges.size() +"\t" +(double)utA/edges.size()+"\t" +(double)utL/edges.size() + "\t"+(double)ut0/edges.size());
+						writer.close();
+						writer2.close();
+						writer3.close();
+						System.gc();
+						comPath.setMax(0);
+
+						edges.clear();
+
+						for (int t = 0; t < edges.size(); t++) {
+							vertices[t].adjacencies.clear();
+						}
+					}
+					
 					comPath.setMax(0);
 
 					edges.clear();
@@ -735,103 +1313,182 @@ public class Dijkstra {
 					for (int t = 0; t < edges.size(); t++) {
 						vertices[t].adjacencies.clear();
 					}
-					copyGraph2();
-					shfTot = 0;
 
-					Collections.shuffle(flowArrayTemp3);
-					maxStepByStep = 0;
-					//				System.out.println("DSP");
-					for(Flow f: flowArrayTemp3) {
-						for (Vertex v : vertices) {
-							v.minDistance = Double.MAX_VALUE;
-							v.previous = null;
-							v.visit = false;
+/*					if(flagR == 5) {
+
+						copyGraph2();
+						//System.out.println("!!");
+						QL = new double[EDGESIZE];
+						for(Edge e: edges)
+							QL[e.id] = 0;
+						comPath.floydAlg(edges, vertices, 0, kPath);
+						
+						for(int i = 0; i < outmostNodesSource.length; i++) {
+							Vertex source = vertices[outmostNodesSource[i]];
+							Vertex target = vertices[outmostNodesTarget[i]];
+							comPath.k_paths(source, target, edges, vertices, kPath, 1);
+							
 						}
-						int x = comPath.computePathwoRate(vertices, edges, f, shf);
-						if (x==1) {
-							//maxDJ = maxDJ + f.cost;
-							maxStepByStep += f.cost;
-							sucDj[shf]++;
+
+						for(Edge e: edges) {
+							
+							
+							for(int i = 0; i < outmostNodesSource.length; i++) {
+								int y = 0;
+								Vertex source = vertices[outmostNodesSource[i]];
+								Vertex target = vertices[outmostNodesTarget[i]];
+								for (int k =0; k < 5; k++) {
+									
+									ArrayList<Vertex> path = (ArrayList<Vertex>) kPath[source.id][target.id].get(k);
+									
+									if(path != null) {
+										Vertex temp = path.get(0);
+										for(int a = 1; a < path.size(); a++) {
+											Vertex next = path.get(a);
+											Edge ex = comPath.findEdge(temp.id, next.id, edges);
+											if(ex != null && ex.id == e.id){
+												
+												y++;
+												
+											}
+											temp = next;
+											
+										}
+									}
+								}
+								
+								e.rate[source.id][target.id] = (double) y/K_VAL;
+								
+								QL[e.id] = QL[e.id] + e.rate[source.id][target.id]*totalFlowForPairs[source.id][target.id];
+								
+							}
+
 						}
-						else
-							lostDj[shf] = lostDj[shf] + 1;
-					}
+						edges.clear();
 
-					if(shfTot < maxStepByStep) {
-						shfTot = maxStepByStep;
-						highestS = shf;
-
-					}
-
-
-					for(Edge e: edges) {
-						double ut = (double)(e.capTemp-e.capacity)/e.capTemp;
-						utDD[shf][e.id] = ut;
-						if(ut > 0.85) {
-							//System.out.println(ut);
-							utCD[shf]++;
+						for (int t = 0; t < edges.size(); t++) {
+							vertices[t].adjacencies.clear();
 						}
-						if(ut < 0.25)
-							utLD[shf]++;
-						if(0.25 <= ut && ut <= 0.85)
-							utAD[shf]++;
+						copyGraph2();
+						for(Flow f: flowArrayTemp4) {
+							ArrayList<Vertex> path = comPath.computePathwithQLRate(vertices, edges, f, QL);
+							ArrayList<Integer> edgeOfPath = new ArrayList<Integer>();
+							//System.out.println(" "+f.cost+ ">" +f.source+"->"+f.target+": "+path);
+							//System.out.println(path);
+							//Burda path > flow kabul ve link arrangement like RBW, flowCount vs, yoksa red.
+							
+							if (path != null) {
+								maxQalg += f.cost;
+								Vertex temp = path.get(0);
 
-						if(ut == 0)
-							ut0D[shf]++;
+								for(int a =1; a <path.size();a++){
+
+									Vertex next = path.get(a);
+									
+									Edge e = comPath.findEdge(temp.id, next.id, edges);
+									
+									if(e != null){
+										edgeOfPath.add(e.id);
+										QL[e.id] = QL[e.id] + (1-e.rate[f.source.id][f.target.id])*f.cost;
+									}
+									temp = next;
+								}
+
+							}
+					
+							
+							
+							for(Edge e: edges) {
+								if(!edgeOfPath.contains(e.id)) {
+									QL[e.id] = QL[e.id]-e.rate[f.source.id][f.target.id]*f.cost;
+								}
+								if(e.capacity < 0)
+									System.out.println(e.id + " " + e.capacity);
+							}
+
+						}
+						edges.clear();
+
+						for (int t = 0; t < edges.size(); t++) {
+							vertices[t].adjacencies.clear();
+						}
+						
+
 					}
-					shf = shf + 1;
+					
+					if(flagR == 5) {
+
+						copyGraph2();
+						//System.out.println("!!");
+						comPath.floydAlg(edges, vertices, 0, kPath);
+						for(int i = 0; i < outmostNodesSource.length; i++) {
+							Vertex source = vertices[outmostNodesSource[i]];
+							Vertex target = vertices[outmostNodesTarget[i]];
+							comPath.k_paths(source, target, edges, vertices, kPath, 1);
+						}
+						for(Flow f: flowArrayTemp5) {
+							ArrayList<Vertex> path = comPath.bestPath(f.source, f.target, edges, vertices, kPath, f.cost);
+							//System.out.println(path);
+							//Burda path > flow kabul ve link arrangement like RBW, flowCount vs, yoksa red.
+							boolean flagPath = true;
+							if (path != null) {
+								Vertex temp = path.get(0);
+
+								for(int a =1; a <path.size();a++){
+
+									Vertex next = path.get(a);
+
+									Edge e = comPath.findEdge(temp.id, next.id, edges);
+									if(e != null){
+										if (e.capacity < f.cost) {
+											flagPath = false;
+											break;
+										}
+									}
+									temp = next;
+								}
+
+							}else{
+								System.out.println("____");
+								flagPath = false;
+							}
+
+							if(flagPath) {
+
+								maxSacma += f.cost;
+
+								Vertex temp = path.get(0);
+
+								for(int a =1; a <path.size();a++){
+
+									Vertex next = path.get(a);
+
+									Edge e = comPath.findEdge(temp.id, next.id, edges);
+									if(e != null){
+
+										e.capacity = e.capacity - f.cost;
+										e.flowCount++;
+										temp = next;
+									}
+								}
 
 
+							}
+							
+							for(Edge e: edges)
+								if(e.capacity < 0)
+									System.out.println(e.id + " " + e.capacity);
 
-				}
+						}
+						edges.clear();
 
-				endTime = System.nanoTime();
-				maxDJ += shfTot;
-				utCDL = utCD[highestS];
-				utLDL = utLD[highestS];
-				utADL = utAD[highestS];
-				ut0DL = ut0D[highestS];
-				sucDjAll = sucDj[highestS];
-				lostDjAll = lostDj[highestS];
-				stats3.addValue(shfTot);		
-				if(sucDjAll == FLOWSIZE) {
-					comPath.maxUTofPath(flowArrayTemp3, edges,highestS);
+						for (int t = 0; t < edges.size(); t++) {
+							vertices[t].adjacencies.clear();
+						}
+						
 
-					writer2.write("\nSHF DSP\n");
-					for(Flow f: flowArrayTemp3) {
-
-						//System.out.println(f.id+ "\t" + f.lastUT);
-						String utS = Integer.toString(f.id)+"\t"+Double.toString(f.lastUT) + "\n";
-						writer2.append(utS);
 					}
-				}
-				writer.append("\nSHF DSP\t");
-				for(Edge e: edges) {
-					//					System.out.print(utDD[highestS][e.id]+"\t");
-					String utS = Double.toString(utDD[highestS][e.id]) + "\t";
-					writer.append(utS);
-					//System.out.println();
-				}
-				djTime += (endTime-startTime);
-
-				//				Collections.sort(edges, Collections.reverseOrder());
-
-
-				//System.out.println(utC+"--"+utA+"--"+utL+"-0-"+ut0);
-
-				//				System.out.println("DSP(GA)"+"\t"+(double)utC/edges.size() +"\t" +(double)utA/edges.size()+"\t" +(double)utL/edges.size() + "\t"+(double)ut0/edges.size());
-
-				//DSPI
-
-				comPath.setMax(0);
-
-				edges.clear();
-
-				for (int t = 0; t < edges.size(); t++) {
-					vertices[t].adjacencies.clear();
-				}
-
-				copyGraph2();
+*/					/*				copyGraph2();
 
 
 
@@ -839,8 +1496,8 @@ public class Dijkstra {
 
 				maxStepByStep = 0;
 				//				System.out.println("DSP");
-				Collections.sort(flowArrayTemp4, Collections.reverseOrder());
-				for(Flow f: flowArrayTemp4) {
+				Collections.sort(flowArrayTemp3, Collections.reverseOrder());
+				for(Flow f: flowArrayTemp3) {
 					for (Vertex v : vertices) {
 						v.minDistance = Double.MAX_VALUE;
 						v.previous = null;
@@ -861,7 +1518,7 @@ public class Dijkstra {
 				stats5.addValue(maxStepByStep);
 				djITime += (endTime-startTime);
 
-
+				Thread.sleep(10);
 
 				//				Collections.sort(edges, Collections.reverseOrder());
 
@@ -885,7 +1542,7 @@ public class Dijkstra {
 				//				System.out.println("DSP(GA)"+"\t"+(double)utC/edges.size() +"\t" +(double)utA/edges.size()+"\t" +(double)utL/edges.size() + "\t"+(double)ut0/edges.size());
 
 
-
+				System.gc();
 				comPath.setMax(0);
 				//				System.out.println("DWSP");
 				edges.clear();
@@ -900,8 +1557,8 @@ public class Dijkstra {
 
 				maxStepByStep = 0;
 				//				System.out.println("DSP");
-				Collections.shuffle(flowArrayTemp5);
-				for(Flow f: flowArrayTemp5) {
+				Collections.shuffle(flowArrayTemp4);
+				for(Flow f: flowArrayTemp4) {
 					for (Vertex v : vertices) {
 						v.minDistance = Double.MAX_VALUE;
 						v.previous = null;
@@ -911,7 +1568,7 @@ public class Dijkstra {
 					if (x==1) {
 						maxDJSH = maxDJSH + f.cost;
 						maxStepByStep += f.cost;
-						
+
 					}
 					else
 						lostDjSH = lostDjSH + 1;
@@ -951,85 +1608,34 @@ public class Dijkstra {
 				for (int t = 0; t < edges.size(); t++) {
 					vertices[t].adjacencies.clear();
 				}
-
+				Thread.sleep(10);
+				System.gc();
 				copyGraph2();
+					 */
 
+					//lastIdea
 
-				long startTime2 = System.nanoTime();
-				maxStepByStep  = 0;
-				for(Flow f: flowArrayTemp2) {
-					for (Vertex v : vertices) {
-						v.minDistance = Double.MAX_VALUE;
-						v.previous = null;
-						v.visit = false;
-					}
-					int x = comPath.computePaths2(f.source, f.target, edges, vertices, f.cost);
-					if (x==1) {
-						maxWSP = maxWSP + f.cost;
-						maxStepByStep = maxStepByStep + f.cost;
-						sucWSP++;
+					//				if (lastIdea(flowArray, level)) {
+					//					maxForCut += sumOfFlow(flowArray);
+					//				} else
+					//					maxForCut += comPath.maxOfFlow;
+					//System.out.println("M: "+comPath.maxOfFlow + " --- " + sumOfFlow(flowArray));
+					//Max of computePath class set 0
+					//				comPath.setMax(0);
 
-
-					}
-					else
-						lostWSP = lostWSP + 1;
-				}
-				long endTime2 = System.nanoTime();
-				stats.addValue(maxStepByStep);
-				wspTime += (endTime2-startTime2);
-				//writer.append("\nDWSP\n");
-				for(Edge e: edges) {
-					double ut = (double)(e.capTemp-e.capacity)/e.capTemp;
-					//System.out.print(ut+"\t");
-					//String utS = Double.toString(ut) + "\t";
-					//writer.append(utS);
-					if(ut > 0.85) {
-						//System.out.println(ut);
-						utCW++;
-					}
-					if(ut < 0.25)
-						utLW++;
-					if(0.25 <= ut && ut <= 0.85)
-						utAW++;
-
-					if(ut == 0)
-						ut0W++;
-				}
-				//				System.out.println("DWSP"+"\t"+(double)utC/edges.size() +"\t" +(double)utA/edges.size()+"\t" +(double)utL/edges.size() + "\t"+(double)ut0/edges.size());
-
-				comPath.setMax(0);
-
-
-				//				int prevC = flowArray.get(0).cost;
-				//				System.out.println("C: "+ prevC);
-				for (Vertex v : vertices) {
-					v.minDistance = Double.MAX_VALUE;
-					v.previous = null;
-					v.visit = false;
-				}
-				//lastIdea
-
-				//				if (lastIdea(flowArray, level)) {
-				//					maxForCut += sumOfFlow(flowArray);
-				//				} else
-				//					maxForCut += comPath.maxOfFlow;
-				//System.out.println("M: "+comPath.maxOfFlow + " --- " + sumOfFlow(flowArray));
-				//Max of computePath class set 0
-				//				comPath.setMax(0);
-
-				/*				copyGraph2();
+					/*				copyGraph2();
 				flowArrayTemp.get(0).cost = prevC;
 				System.out.println("CC: " + flowArrayTemp.get(0).cost);
 				long start = System.nanoTime();
 				comPath.computeAllWidestPath(flowArrayTemp.get(0), vertices, edges);
 				long end = System.nanoTime();
 				long tt = end-start;
-				//System.out.println(formatter.format(tt / (1e6 * RUNSIZE)));
+				//System.out.println(formatter.format(tt / (1e9 * RUNSIZE)));
 				//System.out.println(comPath.maxOfFlow);
 				preTime = preTime + (tt);
 				maxForPre = maxForPre + comPath.maxOfFlow;
-				 */	
-				comPath.setMax(0);
+					 */	
+					/*				comPath.setMax(0);
 
 
 
@@ -1054,11 +1660,13 @@ public class Dijkstra {
 
 
 				stats7.addValue(maxStepByStep);
-				writer.append("\nLEVELMM\t");
+				if(flagUT) {
+				writer.print("\nLEVELMM\t");
 				for(Edge e: edges) {
 					double ut = (double)(e.capTemp-e.capacity)/e.capTemp;
 					String utS = Double.toString(ut) + "\t";
-					writer.append(utS);
+					writer.print(utS);
+					System.out.print(utS);
 					if(ut > 0.85) {
 						//System.out.println(ut);
 						utCC++;
@@ -1073,75 +1681,114 @@ public class Dijkstra {
 				}
 
 				if(sucCut == FLOWSIZE) {
-					comPath.maxUTofPath(flowArrayTemp6, edges,-1);
+					//comPath.maxUTofPath(flowArrayTemp6, edges,-1);
 
-					writer2.write("\nLEVELCUTMM\n");
+					writer2.print("\nLEVELCUTMM\t");
 					for(Flow f: flowArrayTemp6) {
 
 						//System.out.println(f.id+ "\t" + f.lastUT);
-						String utS = Integer.toString(f.id)+"\t"+Double.toString(f.lastUT) + "\n";
-						writer2.append(utS);
+						String utS = Double.toString(f.lastUT) + "\t";//Integer.toString(f.id)+"\t"+
+						writer2.print(utS);
 					}
 
 				}
-				edges.clear();
-				edgesTemp.clear();
+				}*/
+					//System.out.println();
+					/*				System.out.println(run + "\t"+ maxForPre+"\t"+maxForDis+"\t"+maxDJ+"\t"+maxWSP+
+						"\t"+formatter.format(avgPre) + "\t" + formatter.format(avgDis)+ "\t" + formatter.format(avgDj) + "\t" +formatter.format(avgWSP)+
+						"\t"+formatter.format(ciPre) + "\t" + formatter.format(ciDis)+ "\t" + formatter.format(ciDj) +  "\t" + formatter.format(ciWSP)+
+						"\t"+formatter.format(preTime / (1e9 * RUNSIZE))+ "\t"+formatter.format(disTime / (1e9 * RUNSIZE)) + "\t" + formatter.format(djTime / (1e9 * RUNSIZE))+ "\t" + formatter.format(wspTime / (1e9 * RUNSIZE))+
+						//"\t"+formatter.format((double)utCP/edgeSIZEAVG) +"\t"+formatter.format((double)utCO/edgeSIZEAVG) +"\t" +formatter.format((double)utCDL/edgeSIZEAVG)+"\t" +formatter.format((double)utCC/edgeSIZEAVG) +  "\t"+formatter.format((double)utCW/edgeSIZEAVG)+
+						//"\t"+formatter.format((double)utLP/edgeSIZEAVG) +"\t" +formatter.format((double)utLO/edgeSIZEAVG) +"\t" +formatter.format((double)utLDL/edgeSIZEAVG)+"\t" +formatter.format((double)utLC/edgeSIZEAVG) + "\t"+formatter.format((double)utLW/edgeSIZEAVG)+
+						//"\t"+formatter.format((double)utAP/edgeSIZEAVG) +"\t"+formatter.format((double)utAO/edgeSIZEAVG) +"\t" +formatter.format((double)utADL/edgeSIZEAVG)+"\t" +formatter.format((double)utAC/edgeSIZEAVG) +  "\t"+formatter.format((double)utAW/edgeSIZEAVG)+
+						"\t"+ sucPre+"\t"+sucDis+"\t"+sucDj+"\t"+sucWSP);
+					 */				
+					 edges.clear();
+					 edgesTemp.clear();
 
-				for (int t = 0; t < edges.size(); t++) {
-					vertices[t].adjacencies.clear();
-					verticesTemp[t].adjacencies.clear();
+					 for (int t = 0; t < edges.size(); t++) {
+						 vertices[t].adjacencies.clear();
+						 verticesTemp[t].adjacencies.clear();
+					 }
+
+
+
 				}
 
+				//					formatter.format((double) preTime/(double)disTime) + "\t" + disTime/disTime);
+				//			System.out.println(FLOWSIZE+"\t"+lostPre/RUNSIZE+"\t"+lostDis/RUNSIZE + "\t" + lostDj/RUNSIZE + "\t" + lostWSP/RUNSIZE);
+				//System.out.println(FLOWSIZE + "\t"+maxForPre+"\t"+formatter.format(preTime / (1e9 * RUNSIZE))+"\t");
+				//allPreTime += preTime;
+				//allCutTime += lastIdeaTime;
+
+				if(flagR == 1) {
+					ciDis = calcMeanCI(stats, levelCI);
+					avgDis = stats.getMean();
+				}
+				if(flagR == 2) {
+					ciPre = calcMeanCI(stats1, levelCI);
+					avgPre = stats1.getMean();
+				}
+				if(flagR == 3) {
+					ciDj = calcMeanCI(stats2, levelCI);
+					avgDj = stats2.getMean();
+				}
+				
+				if (flagR == 4) {
+					ciWSP = calcMeanCI(stats3, levelCI);
+					avgWSP = stats3.getMean();
+				}
+				if (flagR == 5) {
+					ciQ = calcMeanCI(stats4, levelCI);
+					avgQ = stats4.getMean();
+				}
+				
+				ciDjI = calcMeanCI(stats5, levelCI);
+				avgDjI = stats5.getMean();
+
+				ciDjSH = calcMeanCI(stats6, levelCI);
+				avgDjSH = stats6.getMean();
+
+				double edgeSIZEAVG = (double) EDGESIZE/100; //Bu 100 ile carpmayi unuttugum icin
 			}
-
-			//					formatter.format((double) preTime/(double)disTime) + "\t" + disTime/disTime);
-			//			System.out.println(FLOWSIZE+"\t"+lostPre/RUNSIZE+"\t"+lostDis/RUNSIZE + "\t" + lostDj/RUNSIZE + "\t" + lostWSP/RUNSIZE);
-			//System.out.println(FLOWSIZE + "\t"+maxForPre+"\t"+formatter.format(preTime / (1e6 * RUNSIZE))+"\t");
-			//allPreTime += preTime;
-			//allCutTime += lastIdeaTime;
-
-			ciWSP = calcMeanCI(stats, levelCI);
-			avgWSP = stats.getMean();
-
-			ciPre = calcMeanCI(stats2, levelCI);
-			avgPre = stats2.getMean();
-
-			ciDj = calcMeanCI(stats3, levelCI);
-			avgDj = stats3.getMean();
-
-			ciDjI = calcMeanCI(stats5, levelCI);
-			avgDjI = stats5.getMean();
-
-			ciDjSH = calcMeanCI(stats6, levelCI);
-			avgDjSH = stats6.getMean();
-
-			ciDis = calcMeanCI(stats4, levelCI);
-			avgDis = stats4.getMean();
-
-			ciCUT = calcMeanCI(stats7, levelCI);
-			avgCUT = stats7.getMean();
-
-			double edgeSIZEAVG = (double) EDGESIZE/100; //Bu 100 ile carpmayi unuttugum icin
 			//			System.out.println();
-			System.out.println(FLOWSIZE + "\t"+ maxForPre+"\t"+maxForDis+"\t"+maxDJ+"\t"+maxForCut+"\t"+maxWSP+
-					"\t"+formatter.format(avgPre) + "\t" + formatter.format(avgDis)+ "\t" + formatter.format(avgDj) + "\t" + formatter.format(avgCUT)+"\t" + formatter.format(avgWSP)+
-					"\t"+formatter.format(ciPre) + "\t" + formatter.format(ciDis)+ "\t" + formatter.format(ciDj) + "\t" + formatter.format(ciCUT)+ "\t" + formatter.format(ciWSP)+
-					"\t"+formatter.format(preTime / (1e6 * RUNSIZE))+ "\t"+formatter.format(disTime / (1e6 * RUNSIZE)) + "\t" + formatter.format(djTime / (1e6 * RUNSIZE))+ "\t" + formatter.format(lastIdeaTime / (1e6 * RUNSIZE))+"\t" + formatter.format(wspTime / (1e6 * RUNSIZE))+
-					"\t"+formatter.format((double)utCP/edgeSIZEAVG) +"\t"+formatter.format((double)utCO/edgeSIZEAVG) +"\t" +formatter.format((double)utCDL/edgeSIZEAVG)+"\t" +formatter.format((double)utCC/edgeSIZEAVG) +  "\t"+formatter.format((double)utCW/edgeSIZEAVG)+
-					"\t"+formatter.format((double)utLP/edgeSIZEAVG) +"\t" +formatter.format((double)utLO/edgeSIZEAVG) +"\t" +formatter.format((double)utLDL/edgeSIZEAVG)+"\t" +formatter.format((double)utLC/edgeSIZEAVG) + "\t"+formatter.format((double)utLW/edgeSIZEAVG)+
-					"\t"+formatter.format((double)utAP/edgeSIZEAVG) +"\t"+formatter.format((double)utAO/edgeSIZEAVG) +"\t" +formatter.format((double)utADL/edgeSIZEAVG)+"\t" +formatter.format((double)utAC/edgeSIZEAVG) +  "\t"+formatter.format((double)utAW/edgeSIZEAVG)+
-					"\t"+ sucPre+"\t"+sucDis+"\t"+sucDj+"\t"+sucCut+"\t"+sucWSP);
-/*			System.out.println("PRE\t" + "DIS\t"+"DJ\t"+"CUT\t"+"WSP");
+			
+			String res = Integer.toString(FLOWSIZE) + "\t"+ maxForPre+"\t"+maxForDis+"\t"+maxDJ+"\t"+maxWSP+"\t"+maxQ+
+					"\t"+formatter.format(avgPre) + "\t" + formatter.format(avgDis)+ "\t" + formatter.format(avgDj) + "\t" +formatter.format(avgWSP)+"\t" +formatter.format(avgQ)+
+					"\t"+formatter.format(ciPre) + "\t" + formatter.format(ciDis)+ "\t" + formatter.format(ciDj) +  "\t" + formatter.format(ciWSP)+"\t" + formatter.format(ciQ)+
+					"\t"+formatter.format(preTime / (1e9 * RUNSIZE))+ "\t"+formatter.format(disTime / (1e9 * RUNSIZE)) + "\t" + formatter.format(djTime / (1e9 * RUNSIZE))+ "\t" + formatter.format(wspTime / (1e9 * RUNSIZE))+"\t" + formatter.format(QTime / (1e9 * RUNSIZE))+
+					//"\t"+formatter.format((double)utCP/edgeSIZEAVG) +"\t"+formatter.format((double)utCO/edgeSIZEAVG) +"\t" +formatter.format((double)utCDL/edgeSIZEAVG)+"\t" +formatter.format((double)utCC/edgeSIZEAVG) +  "\t"+formatter.format((double)utCW/edgeSIZEAVG)+
+					//"\t"+formatter.format((double)utLP/edgeSIZEAVG) +"\t" +formatter.format((double)utLO/edgeSIZEAVG) +"\t" +formatter.format((double)utLDL/edgeSIZEAVG)+"\t" +formatter.format((double)utLC/edgeSIZEAVG) + "\t"+formatter.format((double)utLW/edgeSIZEAVG)+
+					//"\t"+formatter.format((double)utAP/edgeSIZEAVG) +"\t"+formatter.format((double)utAO/edgeSIZEAVG) +"\t" +formatter.format((double)utADL/edgeSIZEAVG)+"\t" +formatter.format((double)utAC/edgeSIZEAVG) +  "\t"+formatter.format((double)utAW/edgeSIZEAVG)+
+					"\t"+ sucPre+"\t"+sucDis+"\t"+sucDj+"\t"+sucWSP+"\t"+sucQ;
+			
+			dataWriter.print(res);
+			
+			
+			System.out.println(FLOWSIZE + "\t"+ maxForPre+"\t"+maxForDis+"\t"+maxDJ+"\t"+maxWSP+"\t"+maxQ+
+					"\t"+formatter.format(avgPre) + "\t" + formatter.format(avgDis)+ "\t" + formatter.format(avgDj) + "\t" +formatter.format(avgWSP)+"\t" +formatter.format(avgQ)+
+					"\t"+formatter.format(ciPre) + "\t" + formatter.format(ciDis)+ "\t" + formatter.format(ciDj) +  "\t" + formatter.format(ciWSP)+"\t" + formatter.format(ciQ)+
+					"\t"+formatter.format(preTime / (1e9 * RUNSIZE))+ "\t"+formatter.format(disTime / (1e9 * RUNSIZE)) + "\t" + formatter.format(djTime / (1e9 * RUNSIZE))+ "\t" + formatter.format(wspTime / (1e9 * RUNSIZE))+"\t" + formatter.format(QTime / (1e9 * RUNSIZE))+
+					//"\t"+formatter.format((double)utCP/edgeSIZEAVG) +"\t"+formatter.format((double)utCO/edgeSIZEAVG) +"\t" +formatter.format((double)utCDL/edgeSIZEAVG)+"\t" +formatter.format((double)utCC/edgeSIZEAVG) +  "\t"+formatter.format((double)utCW/edgeSIZEAVG)+
+					//"\t"+formatter.format((double)utLP/edgeSIZEAVG) +"\t" +formatter.format((double)utLO/edgeSIZEAVG) +"\t" +formatter.format((double)utLDL/edgeSIZEAVG)+"\t" +formatter.format((double)utLC/edgeSIZEAVG) + "\t"+formatter.format((double)utLW/edgeSIZEAVG)+
+					//"\t"+formatter.format((double)utAP/edgeSIZEAVG) +"\t"+formatter.format((double)utAO/edgeSIZEAVG) +"\t" +formatter.format((double)utADL/edgeSIZEAVG)+"\t" +formatter.format((double)utAC/edgeSIZEAVG) +  "\t"+formatter.format((double)utAW/edgeSIZEAVG)+
+					"\t"+ sucPre+"\t"+sucDis+"\t"+sucDj+"\t"+sucWSP+"\t"+sucQ);
+			/*			System.out.println("PRE\t" + "DIS\t"+"DJ\t"+"CUT\t"+"WSP");
 			System.out.println(maxForPre+"\t"+maxForDis+"\t"+maxDJ+"\t"+maxForCut+"\t"+maxWSP+"\t"+maxDJI);
 			System.out.println(sucPre+"\t"+sucDis+"\t"+sucDjAll+"\t"+sucCut+"\t"+sucWSP+"\t"+sucDjI);
 			System.out.println(lostPre +"\t" + lostDis + "\t" + lostDjAll + "\t" + lostCut + "\t" + lostWSP +"\t" + lostDjI);
-*/			// "\t"+formatter.format(100*((float) maxForPre/allTotalFlows))+"\t"+formatter.format(100*((float)maxForDis/allTotalFlows))+"\t"+formatter.format(100*((float)maxDJ/allTotalFlows))+"\t"+formatter.format(100*((float)maxWSP/allTotalFlows))+
+			 */			// "\t"+formatter.format(100*((float) maxForPre/allTotalFlows))+"\t"+formatter.format(100*((float)maxForDis/allTotalFlows))+"\t"+formatter.format(100*((float)maxDJ/allTotalFlows))+"\t"+formatter.format(100*((float)maxWSP/allTotalFlows))+
 			//			System.out.println(FLOWSIZE+"\t"+formatter.format(avgPre) + "\t"+formatter.format(avgDis) +"\t"+formatter.format(avgDj)+"\t"+formatter.format(avgWSP));
 			//			System.out.println(FLOWSIZE+"\t"+formatter.format(ciPre) + "\t"+formatter.format(ciDis) +"\t"+formatter.format(ciDj)+"\t"+formatter.format(ciWSP));
+
+
+			writer.close();
+			writer2.close();
+			writer3.close();
+
 		}
 
-		writer.close();
-		writer2.close();
+
 	}
 
 
@@ -1150,12 +1797,14 @@ public class Dijkstra {
 		int maxRateRes = 0;
 		//long startTimePre = System.nanoTime();
 
+		//		System.out.println("Run1: "+(disTime)/(1e9));
+
 		long startTime = 0;
-		if(flagMM[run]) {
+		/*		if(flagMM[run]) {
 			flagMM[run] = false;
 			startTime = System.nanoTime();
 			//System.out.println(run);
-		}
+		}*/
 		//		System.out.println("////"+sources);
 		for(int i = 0; i < sources.length; i++) {
 			//			for (int j = 0; j < NODESIZE; j++) {
@@ -1189,9 +1838,9 @@ public class Dijkstra {
 		//		}
 		//long endTimePre = System.nanoTime();
 
-		//System.out.println((endTimePre-startTimePre)/(1e6));
-		if(flagMM[run] == false)
-			startTime = System.nanoTime();
+		//System.out.println((endTimePre-startTimePre)/(1e9));
+		//if(flagMM[run] == false)
+		startTime = System.nanoTime();
 		for (Edge e: edges) {
 			//System.out.println(e.id +". "+e.source+"-"+e.target+ ":\n"+e.pairs);
 			e.flowCount = 1;
@@ -1314,9 +1963,9 @@ public class Dijkstra {
 
 		}
 		long endTime = System.nanoTime();
-		//disTime = disTime + (endTime-startTime);
+		disTime = disTime + (endTime-startTime);
 
-		//System.out.println("Run: "+(endTime-startTime)/(1e6));
+		//		System.out.println("Run: "+(disTime)/(1e9));
 
 		return maxRateRes;
 	}
@@ -1365,7 +2014,7 @@ public class Dijkstra {
 		//		}
 		//long endTimePre = System.nanoTime();
 
-		//System.out.println((endTimePre-startTimePre)/(1e6));
+		//System.out.println((endTimePre-startTimePre)/(1e9));
 		if(flagMM[run] == false)
 			startTime = System.nanoTime();
 		for (Edge e: edges) {
@@ -1492,7 +2141,7 @@ public class Dijkstra {
 		 */		long endTime = System.nanoTime();
 		 //disTime = disTime + (endTime-startTime);
 		 lastIdeaTime += (endTime-startTime);
-		 //System.out.println("Run: "+(endTime-startTime)/(1e6));
+		 //System.out.println("Run: "+(endTime-startTime)/(1e9));
 
 		 return maxRateRes;
 	}
@@ -1795,6 +2444,7 @@ public class Dijkstra {
 		String fileName = sP+"\\test"+run+ ".brite";
 		//System.out.println(fileName);
 		Rand = new Random();
+		Rand.setSeed(run*100);
 		boolean flag = true;
 		try (BufferedReader br = new BufferedReader(new FileReader(fileName))) {
 			String line;
@@ -1825,7 +2475,65 @@ public class Dijkstra {
 
 				targetId = Integer.parseInt(s[2].toString());
 				s[5] = s[5].split("\\.")[0];
-				int bw =  Integer.parseInt(s[5].toString());////100 + Rand.nextInt(bandwidthRange);//
+				int bw =  100 + Rand.nextInt(bandwidthRange);//Integer.parseInt(s[5].toString());////100 + Rand.nextInt(bandwidthRange);//
+
+				Vertex u = vertices[sourceId];
+				Vertex v = vertices[targetId];
+
+				Vertex uTemp = verticesTemp[sourceId];
+				Vertex vTemp = verticesTemp[targetId];
+
+				Edge e1 = new Edge(sourceId, targetId, u, v, bw, edgeId);
+				edgeId++;
+				Edge e2 = new Edge(targetId, sourceId, v, u, bw, edgeId);
+
+				// System.out.println("E: " + e.id + " s: " + e.source + " t: "
+				// + e.target + " bw: " + e.capacity);
+
+				edges.add(e1);
+				edgesTemp.add(e1);
+				edges.add(e2);
+				edgesTemp.add(e2);
+
+				u.adjacencies.add(e1);
+				u.adjV.add(v);
+				uTemp.adjacencies.add(e1);
+				uTemp.adjV.add(vTemp);
+				v.adjacencies.add(e2);
+				v.adjV.add(u);
+				vTemp.adjacencies.add(e2);
+				vTemp.adjV.add(uTemp);
+
+			}
+		}
+		// wr.close();
+	}
+
+	public static void readFileWAX(int run) throws FileNotFoundException, IOException {
+		Path path = Paths.get("C:\\Users\\erdalEv\\eclipse-workspace\\levelCut-EV\\src\\M_WAX_TOPO\\ab44o");
+		String sP = path.toString();
+		String fileName = sP+"\\"+Integer.toString(run)+ "N.txt";
+		//System.out.println(fileName);
+		Rand = new Random();
+		boolean flag = true;
+		try (BufferedReader br = new BufferedReader(new FileReader(fileName))) {
+			String line;
+			int sourceId = 0;
+			int targetId = 0;
+			int edgeId = 0;
+			int k = 0;
+			while ((line = br.readLine()) != null) {
+
+				// line = line.trim();
+				//line = line.replaceAll("\\s", " ");
+				String[] s = line.split("\t");
+
+
+				//edgeId = Integer.parseInt(s[0].toString());
+				sourceId = Integer.parseInt(s[0].toString());
+
+				targetId = Integer.parseInt(s[1].toString());
+				int bw =  100 + Rand.nextInt(bandwidthRange);//Integer.parseInt(s[5].toString());////100 + Rand.nextInt(bandwidthRange);//
 
 				Vertex u = vertices[sourceId];
 				Vertex v = vertices[targetId];
